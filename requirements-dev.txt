@@ -1,0 +1,17 @@
+# Development Dependencies
+-r requirements.txt
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+
+# Code Formatting and Linting
+black>=23.0.0
+ruff>=0.1.0
+
+# Type Checking (optional)
+mypy>=1.0.0
+
+# Development Tools
+ipython>=8.0.0
+jupyter>=1.0.0

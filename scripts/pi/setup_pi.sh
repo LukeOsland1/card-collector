@@ -224,7 +224,7 @@ deploy_native() {
     
     # Install dependencies
     pip install --upgrade pip
-    pip install -e .
+    pip install -r requirements.txt
     
     log_success "Python environment ready"
     log_info "Activate with: source .venv/bin/activate"

@@ -110,7 +110,7 @@ deploy_native() {
     # Update dependencies
     log_info "Installing/updating dependencies..."
     pip install --upgrade pip
-    pip install -e .
+    pip install -r requirements.txt
     
     # Check if systemd services exist
     if systemctl --user is-enabled cardbot.service &>/dev/null; then

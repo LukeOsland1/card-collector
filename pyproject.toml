@@ -6,7 +6,6 @@ build-backend = "hatchling.build"
 name = "card-collector"
 version = "0.1.0"
 description = "Discord bot for collectible card management"
-readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [

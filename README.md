@@ -59,11 +59,11 @@ chmod +x scripts/run_dev.sh
 # Or manually
 python -m venv .venv
 source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-pip install -e .
-alembic upgrade head
-python db/seeds.py  # Optional: add sample data
-python -m web.app &  # Start web server
-python -m bot.main   # Start Discord bot
+pip install -r requirements.txt
+# alembic upgrade head  # (when migrations are available)
+# python db/seeds.py    # Optional: add sample data
+python -m web.app &     # Start web server
+python -m bot.main      # Start Discord bot
 ```
 
 ### 4. Access Services
@@ -151,7 +151,7 @@ Authorization: Bearer <jwt_token>
 ### Running Tests
 ```bash
 # Install dev dependencies
-pip install -e .[dev]
+pip install -r requirements-dev.txt
 
 # Run tests
 pytest
