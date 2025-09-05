@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Card Collector{% endblock %}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2rem;
+            border-radius: 1rem;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 2rem;
+        }
+        .welcome {
+            text-align: center;
+            padding: 2rem;
+        }
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: #5865F2;
+            color: white;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            transition: background 0.3s ease;
+        }
+        .btn:hover {
+            background: #4752C4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎴 Card Collector</h1>
+        {% block content %}
+        <div class="welcome">
+            <h2>Welcome to Card Collector!</h2>
+            <p>A Discord bot for managing collectible cards.</p>
+            <p>To get started, invite the bot to your Discord server and use the slash commands.</p>
+            
+            <h3>Features:</h3>
+            <ul>
+                <li>Create and manage collectible cards</li>
+                <li>Assign cards to users with optional expiry</li>
+                <li>View your card collection</li>
+                <li>Role-based permissions for admins and moderators</li>
+                <li>Automatic expiry handling</li>
+            </ul>
+            
+            <h3>Commands:</h3>
+            <ul>
+                <li><code>/card my</code> - View your cards</li>
+                <li><code>/card submit</code> - Submit a card for review</li>
+                <li><code>/card create</code> - Create a card (moderators)</li>
+                <li><code>/card assign</code> - Assign a card to a user (moderators)</li>
+            </ul>
+        </div>
+        {% endblock %}
+    </div>
+</body>
+</html>

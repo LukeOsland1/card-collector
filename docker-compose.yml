@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: cards-db
+    environment:
+      POSTGRES_DB: cards
+      POSTGRES_USER: cards_user
+      POSTGRES_PASSWORD: cards_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cards_user -d cards"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - cards-network
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    container_name: cards-bot
+    environment:
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
+      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
+      - DATABASE_URL=postgresql+psycopg://cards_user:cards_password@db:5432/cards
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - cards-network
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: cards-web
+    environment:
+      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
+      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
+      - OAUTH_REDIRECT_URI=${OAUTH_REDIRECT_URI:-http://localhost:8080/oauth/callback}
+      - JWT_SECRET=${JWT_SECRET}
+      - DATABASE_URL=postgresql+psycopg://cards_user:cards_password@db:5432/cards
+      - WEB_HOST=0.0.0.0
+      - WEB_PORT=8080
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - cards-network
+
+  # Optional: Adminer for database management
+  adminer:
+    image: adminer:4.8.1
+    container_name: cards-adminer
+    ports:
+      - "8081:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - cards-network
+    profiles: ["tools"]
+
+volumes:
+  postgres_data:
+
+networks:
+  cards-network:
+    driver: bridge
