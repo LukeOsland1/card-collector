@@ -1,0 +1,124 @@
+version: '3.8'
+
+# Raspberry Pi optimized Docker Compose configuration
+services:
+  db:
+    image: postgres:15
+    container_name: cards-db-pi
+    environment:
+      POSTGRES_DB: cards
+      POSTGRES_USER: cards_user
+      POSTGRES_PASSWORD: cards_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Pi-optimized PostgreSQL settings
+    command: >
+      postgres 
+      -c shared_buffers=128MB
+      -c max_connections=50
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=4
+      -c effective_io_concurrency=2
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cards_user -d cards"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - cards-network
+    # Memory limits for Pi
+    mem_limit: 512m
+    memswap_limit: 768m
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.pi.bot
+    container_name: cards-bot-pi
+    environment:
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
+      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
+      - DATABASE_URL=postgresql+psycopg://cards_user:cards_password@db:5432/cards
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      # Pi-specific optimizations
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - cards-network
+    # Resource limits for Pi
+    mem_limit: 512m
+    memswap_limit: 768m
+    cpu_count: 2
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.pi.web
+    container_name: cards-web-pi
+    environment:
+      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
+      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
+      - OAUTH_REDIRECT_URI=${OAUTH_REDIRECT_URI:-http://localhost:8080/oauth/callback}
+      - JWT_SECRET=${JWT_SECRET}
+      - DATABASE_URL=postgresql+psycopg://cards_user:cards_password@db:5432/cards
+      - WEB_HOST=0.0.0.0
+      - WEB_PORT=8080
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      # Pi-specific optimizations
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - cards-network
+    # Resource limits for Pi
+    mem_limit: 256m
+    memswap_limit: 384m
+    cpu_count: 1
+
+  # Lightweight database admin (optional)
+  adminer:
+    image: adminer:4.8.1
+    container_name: cards-adminer-pi
+    ports:
+      - "8081:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - cards-network
+    profiles: ["tools"]
+    # Minimal resources
+    mem_limit: 128m
+    memswap_limit: 192m
+
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/pi/card-collector-data
+
+networks:
+  cards-network:
+    driver: bridge
