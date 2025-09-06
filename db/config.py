@@ -12,8 +12,10 @@ class DatabaseConfig(BaseSettings):
     database_url: str = "sqlite:///dev.db"
     echo_sql: bool = False
 
-    class Config:
-        env_file = ".env"
+    model_config = {
+        "env_file": ".env",
+        "extra": "ignore"
+    }
 
 
 def get_database_config() -> DatabaseConfig:

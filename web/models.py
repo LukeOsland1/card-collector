@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import Dict, Generic, List, Optional, TypeVar, Any
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 from db.models import CardRarity, CardStatus
 
@@ -30,7 +30,8 @@ class CardBase(BaseModel):
     tags: Optional[List[str]] = None
     max_supply: Optional[int] = Field(None, ge=1)
 
-    @validator("tags")
+    @field_validator("tags")
+    @classmethod
     def validate_tags(cls, v):
         if v is not None:
             # Limit to 10 tags, each max 50 characters
@@ -80,28 +81,27 @@ class CardResponse(BaseModel):
     created_at: datetime
     approved_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
         
     @classmethod
     def from_orm(cls, card):
         """Create response from ORM object."""
-        return cls(
-            id=card.id,
-            name=card.name,
-            description=card.description,
-            rarity=card.rarity,
-            image_url=card.image_url,
-            thumb_url=card.thumb_url,
-            tags=card.tag_list,
-            status=card.status,
-            max_supply=card.max_supply,
-            current_supply=card.current_supply,
-            created_by_user_id=card.created_by_user_id,
-            approved_by_user_id=card.approved_by_user_id,
-            created_at=card.created_at,
-            approved_at=card.approved_at,
-        )
+        return cls.model_validate({
+            "id": card.id,
+            "name": card.name,
+            "description": card.description,
+            "rarity": card.rarity,
+            "image_url": card.image_url,
+            "thumb_url": card.thumb_url,
+            "tags": card.tag_list,
+            "status": card.status,
+            "max_supply": card.max_supply,
+            "current_supply": card.current_supply,
+            "created_by_user_id": card.created_by_user_id,
+            "approved_by_user_id": card.approved_by_user_id,
+            "created_at": card.created_at,
+            "approved_at": card.approved_at,
+        })
 
 
 # Card instance models
@@ -129,8 +129,7 @@ class CardInstanceResponse(BaseModel):
     is_active: bool
     is_expired: bool
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
         
     @classmethod
     def from_orm(cls, instance):
@@ -139,21 +138,21 @@ class CardInstanceResponse(BaseModel):
         if hasattr(instance, 'card') and instance.card:
             card_response = CardResponse.from_orm(instance.card)
             
-        return cls(
-            id=instance.id,
-            card_id=instance.card_id,
-            card=card_response,
-            owner_user_id=instance.owner_user_id,
-            assigned_by_user_id=instance.assigned_by_user_id,
-            assigned_at=instance.assigned_at,
-            expires_at=instance.expires_at,
-            removed_at=instance.removed_at,
-            revoked_by_user_id=instance.revoked_by_user_id,
-            is_locked=instance.is_locked,
-            notes=instance.notes,
-            is_active=instance.is_active,
-            is_expired=instance.is_expired,
-        )
+        return cls.model_validate({
+            "id": instance.id,
+            "card_id": instance.card_id,
+            "card": card_response,
+            "owner_user_id": instance.owner_user_id,
+            "assigned_by_user_id": instance.assigned_by_user_id,
+            "assigned_at": instance.assigned_at,
+            "expires_at": instance.expires_at,
+            "removed_at": instance.removed_at,
+            "revoked_by_user_id": instance.revoked_by_user_id,
+            "is_locked": instance.is_locked,
+            "notes": instance.notes,
+            "is_active": instance.is_active,
+            "is_expired": instance.is_expired,
+        })
 
 
 # User models
@@ -180,24 +179,23 @@ class GuildConfigResponse(BaseModel):
     max_user_submissions: int = 5
     submission_cooldown_hours: int = 24
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
         
     @classmethod
     def from_orm(cls, config):
         """Create response from ORM object."""
-        return cls(
-            guild_id=config.guild_id,
-            admin_role_ids=config.admin_role_ids or [],
-            mod_role_ids=config.mod_role_ids or [],
-            admin_user_ids=config.admin_user_ids or [],
-            mod_user_ids=config.mod_user_ids or [],
-            card_channel_id=config.card_channel_id,
-            log_channel_id=config.log_channel_id,
-            auto_approve_cards=config.auto_approve_cards,
-            max_user_submissions=config.max_user_submissions,
-            submission_cooldown_hours=config.submission_cooldown_hours,
-        )
+        return cls.model_validate({
+            "guild_id": config.guild_id,
+            "admin_role_ids": config.admin_role_ids or [],
+            "mod_role_ids": config.mod_role_ids or [],
+            "admin_user_ids": config.admin_user_ids or [],
+            "mod_user_ids": config.mod_user_ids or [],
+            "card_channel_id": config.card_channel_id,
+            "log_channel_id": config.log_channel_id,
+            "auto_approve_cards": config.auto_approve_cards,
+            "max_user_submissions": config.max_user_submissions,
+            "submission_cooldown_hours": config.submission_cooldown_hours,
+        })
 
 
 # Audit log models
@@ -211,21 +209,20 @@ class AuditLogResponse(BaseModel):
     meta: Dict[str, Any] = {}
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
         
     @classmethod
     def from_orm(cls, log):
         """Create response from ORM object."""
-        return cls(
-            id=log.id,
-            actor_user_id=log.actor_user_id,
-            action=log.action,
-            target_type=log.target_type,
-            target_id=log.target_id,
-            meta=log.meta or {},
-            created_at=log.created_at,
-        )
+        return cls.model_validate({
+            "id": log.id,
+            "actor_user_id": log.actor_user_id,
+            "action": log.action,
+            "target_type": log.target_type,
+            "target_id": log.target_id,
+            "meta": log.meta or {},
+            "created_at": log.created_at,
+        })
 
 
 # Authentication models
@@ -330,7 +327,7 @@ class SearchResponse(BaseModel):
 class BulkCardOperation(BaseModel):
     """Bulk card operation model."""
     card_ids: List[str] = Field(..., min_items=1, max_items=100)
-    action: str = Field(..., regex="^(approve|reject|archive)$")
+    action: str = Field(..., pattern="^(approve|reject|archive)$")
     reason: Optional[str] = None
 
 
@@ -345,7 +342,7 @@ class BulkOperationResponse(BaseModel):
 # Import/Export models
 class CardExportFormat(BaseModel):
     """Card export format options."""
-    format: str = Field(..., regex="^(json|csv|xlsx)$")
+    format: str = Field(..., pattern="^(json|csv|xlsx)$")
     include_instances: bool = False
     include_inactive: bool = False
     filters: Optional[Dict[str, Any]] = None
