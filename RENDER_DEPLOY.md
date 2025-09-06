@@ -164,29 +164,96 @@ git push -u origin main
    Value: my-super-secret-jwt-key-change-this-to-something-random-123
    ```
 
-   **Variable 3 - Database:**
+   **Variable 3 - Database Type:**
    ```
-   Key: DATABASE_URL
-   Value: sqlite+aiosqlite:///./card_collector.db
+   Key: DATABASE_TYPE
+   Value: mongodb
    ```
 
-   **Variable 4 - Web Host:**
+   **Variable 4 - MongoDB Connection (Recommended):**
+   ```
+   Key: MONGODB_URL
+   Value: [See MongoDB setup options below]
+   ```
+
+   **Variable 5 - MongoDB Database Name:**
+   ```
+   Key: MONGODB_DATABASE
+   Value: card_collector
+   ```
+
+   **Variable 6 - Web Host:**
    ```
    Key: WEB_HOST
    Value: 0.0.0.0
    ```
 
-   **Variable 5 - Debug Mode:**
+   **Variable 7 - Debug Mode:**
    ```
    Key: DEBUG
    Value: false
    ```
 
-   **Variable 6 - Log Level:**
+   **Variable 8 - Log Level:**
    ```
    Key: LOG_LEVEL
    Value: INFO
    ```
+
+## 🍃 **MongoDB Setup Options for Render**
+
+Choose one of these MongoDB hosting options for your Render deployment:
+
+### **Option 1: MongoDB Atlas (Recommended - FREE)**
+
+1. **Sign up for MongoDB Atlas:**
+   - Visit: [mongodb.com/atlas](https://www.mongodb.com/atlas)
+   - Create free account (no credit card required)
+   - Create a free M0 cluster
+
+2. **Get Connection String:**
+   - Click "Connect" on your cluster
+   - Choose "Connect your application"
+   - Copy the connection string (looks like `mongodb+srv://...`)
+
+3. **Update Render Environment Variable:**
+   ```
+   Key: MONGODB_URL
+   Value: mongodb+srv://username:password@cluster.mongodb.net/
+   ```
+
+### **Option 2: Render PostgreSQL Service (Alternative)**
+
+If you prefer SQL database on Render:
+
+1. **Add PostgreSQL Service:**
+   - Render Dashboard → "New" → "PostgreSQL"
+   - Choose free plan
+
+2. **Update Environment Variables:**
+   ```
+   Key: DATABASE_TYPE
+   Value: postgresql
+   
+   Key: DATABASE_URL  
+   Value: [Render provides this automatically]
+   ```
+
+### **Option 3: SQLite (Simple, but limited)**
+
+For basic testing only:
+
+```
+Key: DATABASE_TYPE
+Value: sqlite
+
+Key: DATABASE_URL
+Value: sqlite+aiosqlite:///./card_collector.db
+```
+
+**⚠️ Note:** SQLite on Render has limitations - data may be lost on deployments.
+
+---
 
 ### **Optional Variables (for Discord OAuth):**
 
@@ -455,10 +522,20 @@ Solution:
 
 **❌ Database Errors:**
 ```
-Solution:
+MongoDB Issues:
+1. Check MONGODB_URL format: mongodb+srv://username:password@cluster.mongodb.net/
+2. Verify MongoDB Atlas cluster is running and accessible
+3. Check database connection in Atlas dashboard
+
+SQLite Issues:
 1. Ensure DATABASE_URL is exactly: sqlite+aiosqlite:///./card_collector.db
-2. Check application logs for specific database errors
-3. Restart the service in Render dashboard
+2. Note: SQLite data may be lost on Render deployments
+3. Consider upgrading to MongoDB Atlas (free)
+
+General:
+1. Check application logs for specific database errors
+2. Restart the service in Render dashboard
+3. Verify DATABASE_TYPE matches your chosen database
 ```
 
 ### **Getting Detailed Logs:**
@@ -566,6 +643,7 @@ After following this guide, you should have:
 
 - ✅ **Live web application** at `https://your-app.onrender.com`
 - ✅ **Discord bot** responding to slash commands
+- ✅ **MongoDB Atlas database** (or your chosen database) running
 - ✅ **Automatic deployments** from GitHub
 - ✅ **Free SSL certificate** (HTTPS)
 - ✅ **Mobile-responsive** interface
@@ -573,6 +651,7 @@ After following this guide, you should have:
 - ✅ **Admin dashboard** accessible
 - ✅ **API documentation** at `/docs`
 - ✅ **Monitoring and logs** in Render dashboard
+- ✅ **Scalable database** ready for growth
 
 ### **Share Your Success!**
 
