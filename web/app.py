@@ -70,7 +70,8 @@ templates = Jinja2Templates(directory="web/templates")
 @app.get("/", response_class=HTMLResponse)
 async def home(
     request: Request, 
-    current_user: Optional[dict] = Depends(optional_auth)
+    current_user: Optional[dict] = Depends(optional_auth),
+    error: Optional[str] = None
 ):
     """Home page."""
     return templates.TemplateResponse(
@@ -78,6 +79,7 @@ async def home(
         {
             "request": request,
             "user": current_user,
+            "error": error,
         }
     )
 
@@ -87,6 +89,14 @@ async def login(request: Request, state: Optional[str] = None):
     """Redirect to Discord OAuth."""
     oauth_url = get_discord_oauth_url(state)
     return RedirectResponse(url=oauth_url)
+
+
+@app.get("/logout")
+async def logout():
+    """Handle user logout."""
+    response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+    response.delete_cookie("access_token")
+    return response
 
 
 @app.get("/auth/callback")
@@ -99,20 +109,25 @@ async def auth_callback(
     try:
         login_result = await login_with_discord(code, db)
         
-        # In a real app, you'd set an HTTP-only cookie here
-        # For now, return the token (client should handle this securely)
-        return {
-            "status": "success",
-            "access_token": login_result["access_token"],
-            "user": login_result["user"]
-        }
+        # Create a redirect response to the homepage
+        response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+        
+        # Set JWT token as HTTP-only cookie for security
+        response.set_cookie(
+            key="access_token",
+            value=login_result["access_token"],
+            httponly=True,
+            secure=True,  # Use HTTPS in production
+            samesite="lax",
+            max_age=30 * 60,  # 30 minutes to match JWT expiry
+        )
+        
+        return response
         
     except Exception as e:
         logger.error(f"Login error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Login failed"
-        )
+        # Redirect to home with error parameter
+        return RedirectResponse(url="/?error=login_failed", status_code=status.HTTP_302_FOUND)
 
 
 @app.get("/cards", response_class=HTMLResponse)
@@ -141,6 +156,21 @@ async def collection_page(
     
     return templates.TemplateResponse(
         "collection.html",
+        {
+            "request": request,
+            "user": current_user,
+        }
+    )
+
+
+@app.get("/upload", response_class=HTMLResponse)
+async def upload_page(
+    request: Request,
+    current_user: Optional[dict] = Depends(optional_auth)
+):
+    """Card upload page."""
+    return templates.TemplateResponse(
+        "upload.html",
         {
             "request": request,
             "user": current_user,

@@ -133,8 +133,10 @@ git push -u origin main
    
    Build Command: pip install -r requirements.txt
    
-   Start Command: python -m uvicorn web.app:app --host 0.0.0.0 --port $PORT
+   Start Command: python start.py
    ```
+   
+   > 💡 **Note**: The `start.py` command automatically starts both the Discord bot and web server together! No need for separate services.
 
 4. **Choose Plan:**
    - Select **"Free"** plan
@@ -702,13 +704,14 @@ For high-traffic applications, consider PostgreSQL:
    REDIS_URL=redis://host:port
    ```
 
-### **Background Workers (Optional):**
+### **✨ All-in-One Deployment:**
 
-For advanced features like scheduled tasks:
+Your single web service automatically runs everything:
 
-1. **Add Background Worker:**
-   - Render Dashboard → **"New"** → **"Background Worker"**
-   - **Start Command**: `python -m celery worker -A app.celery`
+- **🤖 Discord Bot** - Responds to slash commands and manages cards
+- **🌐 Web Application** - User-friendly interface with Discord OAuth
+- **📡 API Server** - RESTful API with automatic documentation
+- **⚙️ Background Tasks** - Scheduled jobs and maintenance
 
 ---
 

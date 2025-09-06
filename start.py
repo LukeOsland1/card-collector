@@ -82,8 +82,7 @@ def setup_directories():
 def check_environment():
     """Check required environment variables and files."""
     required_env_vars = [
-        'DISCORD_BOT_TOKEN',
-        'DATABASE_URL',
+        'DISCORD_TOKEN',  # Changed from DISCORD_BOT_TOKEN to match actual env var name
         'JWT_SECRET_KEY',
     ]
     
@@ -139,7 +138,7 @@ async def start_discord_bot():
         bot = CardBot()
         
         # Run bot in background
-        bot_task = asyncio.create_task(bot.start(os.getenv('DISCORD_BOT_TOKEN')))
+        bot_task = asyncio.create_task(bot.start(os.getenv('DISCORD_TOKEN')))
         running_services.append(('discord_bot', bot_task, bot))
         
         logger.info("Discord bot started successfully")
@@ -159,10 +158,12 @@ async def start_web_server():
         from web.app import app
         
         # Configure uvicorn
+        # Use PORT from Render.com if available, otherwise fallback to WEB_PORT then 8080
+        port = int(os.getenv('PORT', os.getenv('WEB_PORT', 8080)))
         config = uvicorn.Config(
             app,
             host=os.getenv('WEB_HOST', '0.0.0.0'),
-            port=int(os.getenv('WEB_PORT', 8080)),
+            port=port,
             log_level='info',
             access_log=True,
             loop='asyncio'
@@ -174,7 +175,7 @@ async def start_web_server():
         server_task = asyncio.create_task(server.serve())
         running_services.append(('web_server', server_task, server))
         
-        logger.info(f"Web server started on http://{config.host}:{config.port}")
+        logger.info(f"Web server started on http://{config.host}:{port}")
         return True
         
     except Exception as e:
@@ -212,8 +213,9 @@ async def health_check():
         # Check web server (would need to implement health endpoint)
         import httpx
         try:
+            port = int(os.getenv('PORT', os.getenv('WEB_PORT', 8080)))
             async with httpx.AsyncClient() as client:
-                response = await client.get("http://localhost:8080/api/health", timeout=5.0)
+                response = await client.get(f"http://localhost:{port}/api/health", timeout=5.0)
                 if response.status_code == 200:
                     logger.info("Web server health: OK")
                 else:
@@ -319,10 +321,12 @@ async def main():
         
         logger.info("Card Collector started successfully!")
         logger.info("=" * 50)
+        port = int(os.getenv('PORT', os.getenv('WEB_PORT', 8080)))
+        host = os.getenv('WEB_HOST', '0.0.0.0')
         logger.info("Services running:")
         logger.info("- Discord Bot: Connected and ready")
-        logger.info(f"- Web Server: http://{os.getenv('WEB_HOST', '0.0.0.0')}:{os.getenv('WEB_PORT', 8080)}")
-        logger.info(f"- API Docs: http://{os.getenv('WEB_HOST', '0.0.0.0')}:{os.getenv('WEB_PORT', 8080)}/docs")
+        logger.info(f"- Web Server: http://{host}:{port}")
+        logger.info(f"- API Docs: http://{host}:{port}/docs")
         logger.info("- Background Jobs: Running")
         logger.info("=" * 50)
         

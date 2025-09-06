@@ -82,10 +82,18 @@ async def get_current_user(
     db = Depends(get_db_session),
 ) -> dict:
     """Get current authenticated user."""
-    if not credentials:
+    # Try to get token from Authorization header first
+    token = None
+    if credentials:
+        token = credentials.credentials
+    else:
+        # Fall back to cookie-based authentication
+        token = request.cookies.get("access_token")
+    
+    if not token:
         raise AuthenticationError()
     
-    payload = verify_token(credentials.credentials)
+    payload = verify_token(token)
     discord_id = payload.get("discord_id")
     
     if not discord_id:
@@ -390,7 +398,14 @@ class OptionalAuth:
         db = Depends(get_db_session),
     ) -> Optional[dict]:
         """Get current user if authenticated, otherwise return None."""
-        if not credentials:
+        # Check for token in either header or cookie
+        token = None
+        if credentials:
+            token = credentials.credentials
+        else:
+            token = request.cookies.get("access_token")
+            
+        if not token:
             return None
         
         try:

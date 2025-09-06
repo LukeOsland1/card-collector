@@ -3,15 +3,16 @@ import logging
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.base import get_db
+from db.database import get_db_session
 from db.crud import AuditLogCRUD, CardCRUD, CardInstanceCRUD, GuildConfigCRUD, UserCRUD
 from db.models import Card, CardInstance, CardRarity, CardStatus
 
 from .models import (
     CardCreate,
+    CardSubmit,
     CardResponse,
     CardInstanceResponse,
     CardUpdate,
@@ -36,7 +37,7 @@ async def get_cards(
     tag: Optional[str] = None,
     limit: int = Query(20, le=100),
     offset: int = Query(0, ge=0),
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db_session),
 ):
     """Get cards with filtering and pagination."""
     cards = await CardCRUD.get_all(
@@ -67,7 +68,7 @@ async def get_cards(
 @router.get("/cards/{card_id}", response_model=CardResponse)
 async def get_card(
     card_id: str,
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db_session),
 ):
     """Get a specific card by ID."""
     card = await CardCRUD.get(db, card_id)
@@ -83,7 +84,7 @@ async def get_card(
 @router.post("/cards", response_model=CardResponse)
 async def create_card(
     card_data: CardCreate,
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db_session),
     current_user = Depends(require_permissions(moderator=True)),
 ):
     """Create a new card (requires moderator permissions)."""
@@ -117,11 +118,100 @@ async def create_card(
     return CardResponse.from_orm(card)
 
 
+@router.post("/cards/submit", response_model=dict)
+async def submit_card(
+    name: str = Form(..., min_length=1, max_length=255),
+    description: Optional[str] = Form(None, max_length=500),
+    rarity: str = Form(...),
+    tags: Optional[str] = Form(None),
+    submission_message: Optional[str] = Form(None, max_length=500),
+    max_supply: Optional[int] = Form(None, ge=1),
+    image: Optional[UploadFile] = File(None),
+    db = Depends(get_db_session),
+    current_user = Depends(get_current_user),
+):
+    """Submit a card for review (regular users)."""
+    import os
+    import uuid
+    from db.models import CardRarity, CardStatus
+    
+    # Validate rarity
+    try:
+        card_rarity = CardRarity(rarity.lower())
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid rarity: {rarity}. Must be one of: {[r.value for r in CardRarity]}"
+        )
+    
+    # Handle image upload if provided
+    image_url = None
+    if image:
+        # Validate file type and size
+        if not image.content_type.startswith('image/'):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File must be an image"
+            )
+        
+        if image.size > 10 * 1024 * 1024:  # 10MB limit
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Image file too large (max 10MB)"
+            )
+        
+        # For now, we'll create a placeholder URL
+        # In production, you'd upload to cloud storage
+        file_extension = os.path.splitext(image.filename)[1]
+        image_url = f"/uploads/{uuid.uuid4()}{file_extension}"
+    
+    # Parse tags
+    tag_list = None
+    if tags:
+        tag_list = [tag.strip() for tag in tags.split(',') if tag.strip()]
+        if len(tag_list) > 10:
+            tag_list = tag_list[:10]  # Limit to 10 tags
+    
+    # Create the card with SUBMITTED status
+    card = await CardCRUD.create(
+        db=db,
+        name=name,
+        description=description,
+        rarity=card_rarity,
+        image_url=image_url,
+        thumb_url=image_url,  # Use same image for thumbnail for now
+        tags=tag_list,
+        created_by_user_id=current_user["discord_id"],
+        status=CardStatus.SUBMITTED,
+        max_supply=max_supply,
+    )
+    
+    # Log submission
+    await AuditLogCRUD.create(
+        db=db,
+        actor_user_id=current_user["discord_id"],
+        action="card_submitted_via_web",
+        target_type="card",
+        target_id=card.id,
+        meta={
+            "name": card.name,
+            "rarity": card.rarity.value,
+            "submission_message": submission_message,
+        },
+    )
+    
+    return {
+        "status": "success",
+        "message": "Card submitted for review",
+        "card": CardResponse.from_orm(card)
+    }
+
+
 @router.patch("/cards/{card_id}", response_model=CardResponse)
 async def update_card(
     card_id: str,
     card_update: CardUpdate,
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db_session),
     current_user = Depends(require_permissions(moderator=True)),
 ):
     """Update a card (requires moderator permissions)."""
@@ -156,7 +246,7 @@ async def update_card(
 @router.post("/cards/{card_id}/approve", response_model=CardResponse)
 async def approve_card(
     card_id: str,
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db_session),
     current_user = Depends(require_permissions(moderator=True)),
 ):
     """Approve a submitted card."""
@@ -184,7 +274,7 @@ async def approve_card(
 async def reject_card(
     card_id: str,
     reason: Optional[str] = None,
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db_session),
     current_user = Depends(require_permissions(moderator=True)),
 ):
     """Reject a submitted card."""
@@ -215,7 +305,7 @@ async def get_card_instances(
     active_only: bool = True,
     limit: int = Query(20, le=100),
     offset: int = Query(0, ge=0),
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db_session),
     current_user = Depends(get_current_user),
 ):
     """Get card instances with filtering."""
@@ -257,7 +347,7 @@ async def get_card_instances(
 @router.get("/instances/{instance_id}", response_model=CardInstanceResponse)
 async def get_card_instance(
     instance_id: str,
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db_session),
     current_user = Depends(get_current_user),
 ):
     """Get a specific card instance."""
@@ -287,7 +377,7 @@ async def assign_card_instance(
     owner_user_id: int,
     expires_in_minutes: Optional[int] = None,
     notes: Optional[str] = None,
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db_session),
     current_user = Depends(require_permissions(moderator=True)),
 ):
     """Assign a card instance to a user (requires moderator permissions)."""
@@ -345,7 +435,7 @@ async def assign_card_instance(
 @router.delete("/instances/{instance_id}")
 async def remove_card_instance(
     instance_id: str,
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db_session),
     current_user = Depends(require_permissions(moderator=True)),
 ):
     """Remove a card instance (requires moderator permissions)."""
@@ -390,7 +480,7 @@ async def get_current_user_info(
 @router.get("/users/{user_id}/stats")
 async def get_user_stats(
     user_id: int,
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db_session),
 ):
     """Get user statistics."""
     instances = await CardInstanceCRUD.get_user_instances(
@@ -418,7 +508,7 @@ async def get_user_stats(
 @router.get("/leaderboard")
 async def get_leaderboard(
     limit: int = Query(10, le=100),
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db_session),
 ):
     """Get card collection leaderboard."""
     leaderboard_data = await CardInstanceCRUD.get_card_leaderboard(
@@ -438,7 +528,7 @@ async def get_leaderboard(
 async def search_cards(
     q: str = Query(..., min_length=2, description="Search query"),
     limit: int = Query(20, le=50),
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db_session),
 ):
     """Search cards by name, description, or tags."""
     cards = await CardCRUD.search(db=db, query=q, limit=limit)
@@ -458,7 +548,7 @@ async def get_audit_logs(
     user_id: Optional[int] = None,
     days: int = Query(7, ge=1, le=90),
     limit: int = Query(50, le=200),
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db_session),
     current_user = Depends(require_permissions(admin=True)),
 ):
     """Get audit logs (requires admin permissions)."""
@@ -484,7 +574,7 @@ async def get_audit_logs(
 
 @router.get("/admin/stats")
 async def get_admin_stats(
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db_session),
     current_user = Depends(require_permissions(admin=True)),
 ):
     """Get administrative statistics."""
@@ -514,7 +604,7 @@ async def get_admin_stats(
 @router.get("/admin/guild/{guild_id}/config", response_model=GuildConfigResponse)
 async def get_guild_config(
     guild_id: int,
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db_session),
     current_user = Depends(require_permissions(admin=True)),
 ):
     """Get guild configuration."""
@@ -526,7 +616,7 @@ async def get_guild_config(
 async def update_guild_config(
     guild_id: int,
     config_update: dict,
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db_session),
     current_user = Depends(require_permissions(admin=True)),
 ):
     """Update guild configuration."""

@@ -45,6 +45,11 @@ class CardCreate(CardBase):
     auto_approve: bool = False
 
 
+class CardSubmit(CardBase):
+    """Model for submitting a card for review."""
+    submission_message: Optional[str] = Field(None, max_length=500)
+
+
 class CardUpdate(BaseModel):
     """Model for updating an existing card."""
     name: Optional[str] = Field(None, min_length=1, max_length=100)

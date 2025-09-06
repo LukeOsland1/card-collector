@@ -1,0 +1,289 @@
+{% extends "layout.html" %}
+
+{% block title %}Upload Card - Card Collector{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-upload"></i> Submit a New Card
+                </h4>
+            </div>
+            <div class="card-body">
+                {% if user %}
+                    <p class="text-muted mb-4">
+                        Submit a new card for review and approval by moderators.
+                        Once approved, it will be available for assignment to users.
+                    </p>
+
+                    <form id="cardSubmissionForm" enctype="multipart/form-data">
+                        <!-- Card Name -->
+                        <div class="mb-3">
+                            <label for="cardName" class="form-label">
+                                Card Name <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="cardName" name="name" required 
+                                   placeholder="Enter card name" maxlength="255">
+                        </div>
+
+                        <!-- Card Description -->
+                        <div class="mb-3">
+                            <label for="cardDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="cardDescription" name="description" rows="4" 
+                                      placeholder="Enter card description (optional)"></textarea>
+                        </div>
+
+                        <!-- Card Rarity -->
+                        <div class="mb-3">
+                            <label for="cardRarity" class="form-label">
+                                Rarity <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="cardRarity" name="rarity" required>
+                                <option value="">Select rarity...</option>
+                                <option value="common">
+                                    <span class="badge bg-secondary">Common</span>
+                                </option>
+                                <option value="uncommon">
+                                    <span class="badge bg-success">Uncommon</span>
+                                </option>
+                                <option value="rare">
+                                    <span class="badge bg-primary">Rare</span>
+                                </option>
+                                <option value="epic">
+                                    <span class="badge bg-warning">Epic</span>
+                                </option>
+                                <option value="legendary">
+                                    <span class="badge bg-danger">Legendary</span>
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- Card Image -->
+                        <div class="mb-3">
+                            <label for="cardImage" class="form-label">Card Image</label>
+                            <input type="file" class="form-control" id="cardImage" name="image" 
+                                   accept="image/*" onchange="previewImage(this)">
+                            <div class="form-text">
+                                Upload an image for your card. Supported formats: JPG, PNG, GIF (max 10MB)
+                            </div>
+                        </div>
+
+                        <!-- Image Preview -->
+                        <div class="mb-3" id="imagePreview" style="display: none;">
+                            <label class="form-label">Image Preview</label>
+                            <div class="border p-2 rounded">
+                                <img id="previewImg" src="" alt="Preview" style="max-width: 300px; max-height: 200px; border-radius: 8px;">
+                            </div>
+                        </div>
+
+                        <!-- Card Tags -->
+                        <div class="mb-3">
+                            <label for="cardTags" class="form-label">Tags</label>
+                            <input type="text" class="form-control" id="cardTags" name="tags" 
+                                   placeholder="Enter tags separated by commas (e.g., fantasy, weapon, magic)">
+                            <div class="form-text">
+                                Add tags to help categorize your card (optional)
+                            </div>
+                        </div>
+
+                        <!-- Max Supply -->
+                        <div class="mb-3">
+                            <label for="maxSupply" class="form-label">Max Supply</label>
+                            <input type="number" class="form-control" id="maxSupply" name="max_supply" 
+                                   min="1" placeholder="Leave empty for unlimited supply">
+                            <div class="form-text">
+                                Set a maximum number of instances that can exist (optional)
+                            </div>
+                        </div>
+
+                        <!-- Submission Message -->
+                        <div class="mb-4">
+                            <label for="submissionMessage" class="form-label">Submission Notes</label>
+                            <textarea class="form-control" id="submissionMessage" name="submission_message" rows="3" 
+                                      placeholder="Any additional notes for the moderators (optional)"></textarea>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-flex justify-content-between">
+                            <a href="/" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Home
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                                <i class="fas fa-paper-plane"></i> Submit Card
+                            </button>
+                        </div>
+                    </form>
+
+                {% else %}
+                    <!-- Not logged in -->
+                    <div class="text-center py-5">
+                        <i class="fas fa-lock fa-3x text-muted mb-3"></i>
+                        <h5>Login Required</h5>
+                        <p class="text-muted mb-4">
+                            You need to be logged in to submit cards for review.
+                        </p>
+                        <a href="/login" class="btn btn-primary">
+                            <i class="fab fa-discord"></i> Login with Discord
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success/Error Modals -->
+<div class="modal fade" id="resultModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="resultModalTitle">Submission Result</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="resultModalBody">
+                <!-- Result message will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="resultModalAction" onclick="window.location.href='/'">
+                    Back to Home
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Image preview functionality
+function previewImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('previewImg').src = e.target.result;
+            document.getElementById('imagePreview').style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        document.getElementById('imagePreview').style.display = 'none';
+    }
+}
+
+// Form submission
+document.getElementById('cardSubmissionForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = submitBtn.innerHTML;
+    
+    // Show loading state
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+    
+    try {
+        // Get form data
+        const formData = new FormData();
+        formData.append('name', document.getElementById('cardName').value);
+        formData.append('description', document.getElementById('cardDescription').value);
+        formData.append('rarity', document.getElementById('cardRarity').value);
+        formData.append('tags', document.getElementById('cardTags').value);
+        formData.append('submission_message', document.getElementById('submissionMessage').value);
+        
+        // Add max supply if specified
+        const maxSupply = document.getElementById('maxSupply').value;
+        if (maxSupply) {
+            formData.append('max_supply', maxSupply);
+        }
+        
+        // Add image if uploaded
+        const imageFile = document.getElementById('cardImage').files[0];
+        if (imageFile) {
+            formData.append('image', imageFile);
+        }
+        
+        // Get auth token from cookie
+        const token = getCookie('access_token');
+        if (!token) {
+            throw new Error('Authentication required. Please log in.');
+        }
+        
+        // Submit form
+        const response = await fetch('/api/v1/cards/submit', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token
+            },
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            // Success
+            showResultModal(
+                'Success!', 
+                `<div class="text-success">
+                    <i class="fas fa-check-circle fa-2x mb-3"></i>
+                    <h6>Card submitted successfully!</h6>
+                    <p>Your card "${result.card.name}" has been submitted for review. You will be notified when it's approved.</p>
+                    <p><strong>Card ID:</strong> ${result.card.id}</p>
+                </div>`,
+                'success'
+            );
+            
+            // Reset form
+            document.getElementById('cardSubmissionForm').reset();
+            document.getElementById('imagePreview').style.display = 'none';
+            
+        } else {
+            // Error
+            showResultModal(
+                'Submission Failed', 
+                `<div class="text-danger">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                    <h6>Failed to submit card</h6>
+                    <p>${result.detail || 'An unknown error occurred.'}</p>
+                </div>`,
+                'error'
+            );
+        }
+        
+    } catch (error) {
+        console.error('Submission error:', error);
+        showResultModal(
+            'Error', 
+            `<div class="text-danger">
+                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                <h6>Submission Error</h6>
+                <p>${error.message}</p>
+            </div>`,
+            'error'
+        );
+    } finally {
+        // Reset button
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    }
+});
+
+// Show result modal
+function showResultModal(title, body, type) {
+    document.getElementById('resultModalTitle').textContent = title;
+    document.getElementById('resultModalBody').innerHTML = body;
+    
+    const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+    modal.show();
+}
+
+// Cookie helper function
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+}
+</script>
+{% endblock %}
