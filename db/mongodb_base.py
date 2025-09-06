@@ -58,19 +58,27 @@ async def init_mongodb(mongodb_url: Optional[str] = None) -> None:
     
     database_name = os.getenv("MONGODB_DATABASE", "card_collector")
     
+    logger.info(f"Attempting MongoDB connection to: {mongodb_url[:50]}...")
+    logger.info(f"MongoDB database name: {database_name}")
+    
     try:
         # Create MongoDB client with SSL configuration
         # For MongoDB Atlas, we need to handle SSL/TLS properly
-        client_options = {}
+        client_options = {
+            "serverSelectionTimeoutMS": 5000,  # 5 second timeout
+            "socketTimeoutMS": 5000,
+            "connectTimeoutMS": 5000,
+        }
         
         # If URL contains MongoDB Atlas hostnames, add SSL configuration
-        if "mongodb.net" in mongodb_url:
+        if "mongodb.net" in mongodb_url or "mongodb+srv:" in mongodb_url:
             client_options.update({
                 "tls": True,
                 "tlsAllowInvalidCertificates": False,
                 "retryWrites": True,
                 "w": "majority"
             })
+            logger.info("Using MongoDB Atlas configuration with TLS")
         
         mongodb_client = AsyncIOMotorClient(mongodb_url, **client_options)
         database = mongodb_client[database_name]

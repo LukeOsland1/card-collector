@@ -64,13 +64,11 @@ class DatabaseManager:
                 logger.info("Initialized MongoDB connection")
             except Exception as e:
                 logger.error(f"Failed to initialize MongoDB: {e}")
-                logger.warning("Falling back to SQLite database")
-                # Switch to SQLite as fallback
-                import os
-                os.environ["DATABASE_TYPE"] = "sqlite"
-                self.is_mongodb = False
-                self.config = get_database_config()
-                logger.info("Switched to SQLite database as fallback")
+                logger.error("MongoDB initialization failed - cannot continue with MongoDB configuration")
+                logger.error("Please either:")
+                logger.error("1. Fix your MongoDB connection (check MONGODB_URL environment variable)")
+                logger.error("2. Set DATABASE_TYPE=sqlite to use SQLite instead")
+                raise Exception(f"MongoDB initialization failed: {e}. Cannot start application.")
         else:
             # SQL database initialization is handled in base.py
             logger.info("Using SQL database connection")
