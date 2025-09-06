@@ -222,9 +222,62 @@ git push -u origin main
 
    > 💡 **Note:** Replace `[your-render-app-name]` with your actual Render app name. Get Discord OAuth credentials from the Discord Developer Portal.
 
-## 🍃 **MongoDB Setup Options for Render**
+## 📊 **Database Options for Render**
 
-Choose one of these MongoDB hosting options for your Render deployment:
+Choose the best database option for your deployment:
+
+### **🐘 Option 1: PostgreSQL (RECOMMENDED)**
+
+**Best for production web applications:**
+- ✅ Persistent storage - never lose data
+- ✅ Automatic backups - built-in protection
+- ✅ Free tier available (256MB)
+- ✅ Managed by Render - zero maintenance
+- ✅ Better performance for web apps
+
+**Setup Steps:**
+1. **Create PostgreSQL Database:**
+   - Render Dashboard → New → PostgreSQL
+   - Name: `card-collector-db`
+   - Plan: Free (256MB)
+   - Region: Same as your web service
+
+2. **Connect to Web Service:**
+   - Go to your web service → Environment
+   - Add environment variable:
+   ```
+   Key: DATABASE_TYPE
+   Value: postgresql
+   ```
+   - Render automatically provides `DATABASE_URL` from your PostgreSQL service
+
+3. **Deploy:** Your app will automatically create tables on first run!
+
+### **🗃️ Option 2: SQLite (SIMPLE)**
+
+**Good for development and small apps:**
+- ✅ Zero configuration
+- ✅ Works immediately
+- ⚠️ Requires persistent disk for data retention
+
+**Setup Steps:**
+1. **Add Persistent Disk:**
+   - Your web service → Settings → Environment
+   - Add Disk: 1GB, mount path: `/app/data`
+
+2. **Set Environment Variables:**
+   ```
+   Key: DATABASE_TYPE
+   Value: sqlite
+   ```
+   ```
+   Key: DATABASE_URL
+   Value: sqlite+aiosqlite:///./data/card_collector.db
+   ```
+
+### **🍃 Option 3: MongoDB (ADVANCED)**
+
+**For MongoDB enthusiasts (may have SSL issues on Render):**
 
 ### **Option 1: MongoDB Atlas (Recommended - FREE)**
 
