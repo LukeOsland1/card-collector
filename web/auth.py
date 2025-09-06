@@ -160,6 +160,27 @@ def require_permissions(
 
 async def exchange_discord_code(code: str) -> dict:
     """Exchange Discord OAuth code for access token."""
+    # Log configuration for debugging (without exposing secrets)
+    logger.info(f"Discord OAuth attempt - Client ID: {'SET' if DISCORD_CLIENT_ID else 'NOT SET'}")
+    logger.info(f"Discord OAuth attempt - Client Secret: {'SET' if DISCORD_CLIENT_SECRET else 'NOT SET'}")
+    logger.info(f"Discord OAuth attempt - Redirect URI: {DISCORD_REDIRECT_URI}")
+    logger.info(f"Discord OAuth attempt - Code length: {len(code) if code else 0}")
+    
+    # Check required environment variables
+    if not DISCORD_CLIENT_ID:
+        logger.error("DISCORD_CLIENT_ID environment variable is not set")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Discord OAuth not configured - Client ID missing"
+        )
+    
+    if not DISCORD_CLIENT_SECRET:
+        logger.error("DISCORD_CLIENT_SECRET environment variable is not set")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Discord OAuth not configured - Client Secret missing"
+        )
+    
     data = {
         "client_id": DISCORD_CLIENT_ID,
         "client_secret": DISCORD_CLIENT_SECRET,
@@ -176,10 +197,12 @@ async def exchange_discord_code(code: str) -> dict:
         response = await client.post(DISCORD_OAUTH_URL, data=data, headers=headers)
         
         if response.status_code != 200:
-            logger.error(f"Discord OAuth error: {response.text}")
+            logger.error(f"Discord OAuth error response: Status {response.status_code}")
+            logger.error(f"Discord OAuth error details: {response.text}")
+            logger.error(f"Discord OAuth request data: client_id={DISCORD_CLIENT_ID[:8]}..., grant_type=authorization_code, redirect_uri={DISCORD_REDIRECT_URI}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to exchange Discord code"
+                detail=f"Failed to exchange Discord code: {response.text}"
             )
         
         return response.json()
@@ -222,36 +245,71 @@ async def get_discord_guilds(access_token: str) -> list:
 
 async def login_with_discord(code: str, db) -> dict:
     """Complete Discord OAuth login flow."""
-    # Exchange code for access token
-    token_response = await exchange_discord_code(code)
-    access_token = token_response["access_token"]
-    
-    # Get user information
-    user_info = await get_discord_user(access_token)
-    discord_id = int(user_info["id"])
-    username = f"{user_info['username']}#{user_info['discriminator']}"
-    
-    # Get or create user in database
-    user = await UserCRUD.get_or_create(db, discord_id)
-    
-    # Create JWT token
-    token_data = {
-        "discord_id": discord_id,
-        "username": username,
-    }
-    
-    jwt_token = create_access_token(token_data)
-    
-    return {
-        "access_token": jwt_token,
-        "token_type": "bearer",
-        "user": {
+    try:
+        # Exchange code for access token
+        token_response = await exchange_discord_code(code)
+        
+        if "access_token" not in token_response:
+            logger.error(f"No access token in Discord response: {token_response}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid Discord OAuth response - no access token"
+            )
+        
+        access_token = token_response["access_token"]
+        logger.info("Successfully obtained Discord access token")
+        
+        # Get user information
+        user_info = await get_discord_user(access_token)
+        logger.info(f"Discord user info received: {list(user_info.keys())}")
+        
+        # Parse Discord user data with error handling
+        if "id" not in user_info:
+            logger.error(f"No Discord user ID in response: {user_info}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid Discord user response - missing user ID"
+            )
+        
+        discord_id = int(user_info["id"])
+        username = user_info.get("username", "Unknown")
+        discriminator = user_info.get("discriminator", "0000")
+        full_username = f"{username}#{discriminator}"
+        
+        logger.info(f"Processing Discord user: {discord_id} ({full_username})")
+        
+        # Get or create user in database
+        user = await UserCRUD.get_or_create(db, discord_id)
+        logger.info(f"User {'created' if not user else 'found'} in database: {discord_id}")
+        
+        # Create JWT token
+        token_data = {
             "discord_id": discord_id,
-            "username": username,
-            "avatar": user_info.get("avatar"),
-            "global_name": user_info.get("global_name"),
+            "username": full_username,
         }
-    }
+        
+        jwt_token = create_access_token(token_data)
+        
+        return {
+            "access_token": jwt_token,
+            "token_type": "bearer",
+            "user": {
+                "discord_id": discord_id,
+                "username": full_username,
+                "avatar": user_info.get("avatar"),
+                "global_name": user_info.get("global_name"),
+            }
+        }
+        
+    except HTTPException:
+        # Re-raise HTTPExceptions as-is
+        raise
+    except Exception as e:
+        logger.error(f"Login error details: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Discord login failed: {str(e)}"
+        )
 
 
 def get_discord_oauth_url(state: Optional[str] = None) -> str:
