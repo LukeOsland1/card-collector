@@ -200,6 +200,28 @@ git push -u origin main
    Value: INFO
    ```
 
+   **🔐 Discord OAuth Variables (Required for Web Login):**
+
+   **Variable 9 - Discord Client ID:**
+   ```
+   Key: DISCORD_CLIENT_ID
+   Value: [Your Discord Application Client ID from Developer Portal]
+   ```
+
+   **Variable 10 - Discord Client Secret:**
+   ```
+   Key: DISCORD_CLIENT_SECRET
+   Value: [Your Discord Application Client Secret from Developer Portal]
+   ```
+
+   **Variable 11 - Discord Redirect URI:**
+   ```
+   Key: DISCORD_REDIRECT_URI
+   Value: https://[your-render-app-name].onrender.com/auth/callback
+   ```
+
+   > 💡 **Note:** Replace `[your-render-app-name]` with your actual Render app name. Get Discord OAuth credentials from the Discord Developer Portal.
+
 ## 🍃 **MongoDB Setup Options for Render**
 
 Choose one of these MongoDB hosting options for your Render deployment:
