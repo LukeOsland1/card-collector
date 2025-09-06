@@ -138,6 +138,17 @@ async def quick_start():
             logger.info("4. Click 'Reset Token' if needed")
             logger.info("5. Copy the new token")
             logger.info("6. Update .env file: DISCORD_BOT_TOKEN=your_new_token_here")
+        elif "PrivilegedIntentsRequired" in str(e):
+            logger.error("Discord privileged intents error!")
+            logger.info("The bot needs privileged intents enabled. Please:")
+            logger.info("1. Go to: https://discord.com/developers/applications")
+            logger.info("2. Select your application")
+            logger.info("3. Go to 'Bot' section")
+            logger.info("4. Scroll down to 'Privileged Gateway Intents'")
+            logger.info("5. Enable 'Message Content Intent' if you need prefix commands")
+            logger.info("6. Click 'Save Changes'")
+            logger.info("7. Run the application again")
+            logger.info("\nNote: For slash commands only, this intent is not needed.")
         return
     
     # Start web server

@@ -14,13 +14,14 @@ class CardBot(commands.Bot):
     """Main bot class."""
 
     def __init__(self):
+        # Configure intents - avoid privileged intents when possible
         intents = discord.Intents.default()
-        intents.message_content = True
-        intents.guilds = True
-        intents.guild_messages = True
-
+        intents.guilds = True  # Required for slash commands
+        # Note: message_content is a privileged intent, only enable if needed for prefix commands
+        # For slash commands only, this is not required
+        
         super().__init__(
-            command_prefix="!",
+            command_prefix="!",  # Fallback prefix (rarely used with slash commands)
             intents=intents,
             description="Collectible Card Management Bot"
         )
