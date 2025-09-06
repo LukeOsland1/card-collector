@@ -122,7 +122,7 @@ class User(Document):
     """User document for Discord users."""
     
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    discord_id: Indexed(int, unique=True)  # Beanie indexed field
+    discord_id: int  # Discord user ID
     username: Optional[str] = Field(None, max_length=255)
     discriminator: Optional[str] = Field(None, max_length=10)
     avatar: Optional[str] = Field(None, max_length=255)
