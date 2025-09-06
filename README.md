@@ -46,7 +46,30 @@ A comprehensive, production-ready Discord bot and web application for managing c
 
 > **Alternative**: Use the batch files for one-click setup - `setup.bat`, then `start.bat`
 
-### **🐧 Linux/Mac Users**
+### **🍎 macOS Users (Easiest)**
+
+**Option 1: Double-Click Setup** 
+1. **Download & Extract** the project from [GitHub](https://github.com/LukeOsland1/card-collector/archive/refs/heads/master.zip)
+2. **Double-click** `setup.command` in Finder
+3. **Follow the interactive setup** - enter your Discord bot token when prompted
+4. **Double-click** `run_macos.command` to start the application
+
+**Option 2: Terminal Setup**
+```bash
+# 1. Clone and enter repository
+git clone https://github.com/LukeOsland1/card-collector.git
+cd card-collector
+
+# 2. Run interactive setup (creates .env automatically)
+./setup_macos.sh
+
+# 3. Start the application
+python3 run.py        # Quick development start
+# OR
+python3 start.py      # Full production features
+```
+
+### **🐧 Linux Users**
 
 ```bash
 # 1. Clone and enter repository
