@@ -22,15 +22,39 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('logs/card-collector.log')
-    ]
-)
+# Configure logging with Windows-compatible encoding
+def setup_logging():
+    """Setup logging with proper encoding for Windows."""
+    # Ensure logs directory exists
+    Path('logs').mkdir(exist_ok=True)
+    
+    # Configure handlers with explicit encoding
+    handlers = []
+    
+    # Console handler with UTF-8 support for Windows
+    console_handler = logging.StreamHandler(sys.stdout)
+    if sys.platform == "win32":
+        # Use UTF-8 encoding for Windows console
+        try:
+            console_handler.stream.reconfigure(encoding='utf-8', errors='replace')
+        except AttributeError:
+            # Fallback for older Python versions
+            pass
+    handlers.append(console_handler)
+    
+    # File handler with UTF-8 encoding
+    file_handler = logging.FileHandler('logs/card-collector.log', encoding='utf-8')
+    handlers.append(file_handler)
+    
+    # Configure basic logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=handlers,
+        force=True  # Override any existing configuration
+    )
+
+setup_logging()
 
 logger = logging.getLogger(__name__)
 
@@ -183,7 +207,7 @@ async def health_check():
         from db.base import async_engine
         async with async_engine.connect() as conn:
             await conn.execute("SELECT 1")
-        logger.info("✅ Database connection: OK")
+        logger.info("Database connection: OK")
         
         # Check web server (would need to implement health endpoint)
         import httpx
@@ -191,14 +215,14 @@ async def health_check():
             async with httpx.AsyncClient() as client:
                 response = await client.get("http://localhost:8080/api/health", timeout=5.0)
                 if response.status_code == 200:
-                    logger.info("✅ Web server health: OK")
+                    logger.info("Web server health: OK")
                 else:
-                    logger.warning(f"⚠️ Web server health: {response.status_code}")
+                    logger.warning(f"Web server health: {response.status_code}")
         except Exception as e:
-            logger.warning(f"⚠️ Web server health check failed: {e}")
+            logger.warning(f"Web server health check failed: {e}")
         
         # Check Discord bot status (would check if bot is connected)
-        logger.info("✅ Health checks completed")
+        logger.info("Health checks completed")
         
     except Exception as e:
         logger.error(f"Health check failed: {e}")
@@ -246,7 +270,7 @@ async def shutdown_handler(signame):
 
 async def main():
     """Main application entry point."""
-    logger.info("🚀 Starting Card Collector...")
+    logger.info("Starting Card Collector...")
     
     # Setup signal handlers
     if sys.platform != 'win32':
@@ -293,7 +317,7 @@ async def main():
         await asyncio.sleep(3)  # Wait for services to fully start
         await health_check()
         
-        logger.info("🎉 Card Collector started successfully!")
+        logger.info("Card Collector started successfully!")
         logger.info("=" * 50)
         logger.info("Services running:")
         logger.info("- Discord Bot: Connected and ready")

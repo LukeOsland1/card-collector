@@ -23,7 +23,7 @@ async def create_tables():
     logger.info("Creating database tables...")
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    logger.info("✅ Database tables created successfully")
+    logger.info("Database tables created successfully")
 
 
 async def check_database_connection():
@@ -31,10 +31,10 @@ async def check_database_connection():
     try:
         async with async_engine.connect() as conn:
             await conn.execute("SELECT 1")
-        logger.info("✅ Database connection successful")
+        logger.info("Database connection successful")
         return True
     except Exception as e:
-        logger.error(f"❌ Database connection failed: {e}")
+        logger.error(f"Database connection failed: {e}")
         return False
 
 
@@ -55,15 +55,15 @@ def init_alembic():
             ], capture_output=True, text=True)
             
             if result.returncode == 0:
-                logger.info("✅ Alembic initialized successfully")
+                logger.info("Alembic initialized successfully")
             else:
-                logger.error(f"❌ Alembic initialization failed: {result.stderr}")
+                logger.error(f"Alembic initialization failed: {result.stderr}")
                 return False
         except Exception as e:
-            logger.error(f"❌ Error initializing Alembic: {e}")
+            logger.error(f"Error initializing Alembic: {e}")
             return False
     else:
-        logger.info("✅ Alembic already initialized")
+        logger.info("Alembic already initialized")
     
     return True
 
@@ -78,13 +78,13 @@ def upgrade_database():
         ], capture_output=True, text=True)
         
         if result.returncode == 0:
-            logger.info("✅ Database upgraded successfully")
+            logger.info("Database upgraded successfully")
             return True
         else:
-            logger.error(f"❌ Database upgrade failed: {result.stderr}")
+            logger.error(f"Database upgrade failed: {result.stderr}")
             return False
     except Exception as e:
-        logger.error(f"❌ Error upgrading database: {e}")
+        logger.error(f"Error upgrading database: {e}")
         return False
 
 
@@ -93,16 +93,16 @@ async def seed_development_data():
     try:
         from db.seeds import seed_development_data as seed_data
         await seed_data()
-        logger.info("✅ Development data seeded successfully")
+        logger.info("Development data seeded successfully")
     except ImportError:
         logger.info("ℹ️  No seed data module found, skipping")
     except Exception as e:
-        logger.error(f"❌ Error seeding data: {e}")
+        logger.error(f"Error seeding data: {e}")
 
 
 async def main():
     """Main initialization function."""
-    logger.info("🚀 Starting database initialization...")
+    logger.info("Starting database initialization...")
     
     # Get database config
     config = get_database_config()
@@ -130,7 +130,7 @@ async def main():
     if "--seed" in sys.argv:
         await seed_development_data()
     
-    logger.info("🎉 Database initialization complete!")
+    logger.info("Database initialization complete!")
     return True
 
 

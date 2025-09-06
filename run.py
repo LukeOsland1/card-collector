@@ -77,7 +77,7 @@ async def quick_start():
         logger.error(f"Failed to start web server: {e}")
         return
     
-    logger.info("🎉 Card Collector is running!")
+    logger.info("Card Collector is running!")
     logger.info("- Bot: Check Discord for slash commands")
     logger.info("- Web: http://127.0.0.1:8080")
     logger.info("- API: http://127.0.0.1:8080/docs")
