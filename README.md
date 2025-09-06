@@ -96,6 +96,28 @@ python3 start.py      # Full production features
 git clone https://github.com/LukeOsland1/card-collector.git && cd card-collector && python install_deps.py
 ```
 
+### **🍃 MongoDB (Recommended for Production)**
+
+```bash
+# 1. Quick MongoDB setup
+python install_mongodb.py
+
+# 2. Start the application  
+python run.py
+
+# 3. Verify MongoDB is working
+curl http://localhost:8080/api/health
+```
+
+**Benefits of MongoDB:**
+- ✅ Better scalability for large card collections
+- ✅ Flexible schema for evolving data models
+- ✅ Advanced querying with aggregation pipelines  
+- ✅ Cloud-ready with MongoDB Atlas
+- ✅ High performance for read/write operations
+
+**📖 [Complete MongoDB Setup Guide](MONGODB_SETUP.md)**
+
 ### **🐳 Docker (Production)**
 
 ```bash
@@ -115,7 +137,10 @@ docker-compose up -d
 
 - **Python 3.9+** ([Download Python](https://python.org))
 - **Discord Bot Token** ([Discord Developer Portal](https://discord.com/developers/applications))
-- **PostgreSQL** (production) or **SQLite** (development)
+- **Database** (choose one):
+  - **🍃 MongoDB** (recommended for production) - [Setup Guide](MONGODB_SETUP.md)
+  - **🗄️ SQLite** (default, good for development)
+  - **🐘 PostgreSQL** (legacy support)
 
 ## 🛠️ **Installation Troubleshooting**
 
@@ -216,9 +241,19 @@ DISCORD_CLIENT_SECRET=your_client_secret
 DISCORD_BOT_TOKEN=your_actual_bot_token_here
 JWT_SECRET_KEY=your-super-secret-jwt-key-here-change-this
 
-# ===== DATABASE (Required) =====
-DATABASE_URL=sqlite+aiosqlite:///./card_collector.db
-# For PostgreSQL: postgresql+asyncpg://username:password@localhost/card_collector
+# ===== DATABASE (Choose one) =====
+# MongoDB (recommended for production)
+DATABASE_TYPE=mongodb
+MONGODB_URL=mongodb://localhost:27017
+MONGODB_DATABASE=card_collector
+
+# SQLite (default, good for development)  
+# DATABASE_TYPE=sqlite
+# DATABASE_URL=sqlite+aiosqlite:///./card_collector.db
+
+# PostgreSQL (legacy support)
+# DATABASE_TYPE=postgresql  
+# DATABASE_URL=postgresql+asyncpg://username:password@localhost/card_collector
 
 # ===== WEB SERVER =====
 WEB_HOST=0.0.0.0

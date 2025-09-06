@@ -7,9 +7,8 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from db.base import get_db
+from db.database import get_db_session, init_database, close_database, get_database_health
+from db.config import is_mongodb
 from .api import router as api_router
 from .auth import get_discord_oauth_url, login_with_discord, optional_auth
 
@@ -45,6 +44,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Database lifecycle events
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database on startup."""
+    await init_database()
+    logger.info("Database initialized")
+
+
+@app.on_event("shutdown") 
+async def shutdown_event():
+    """Close database connections on shutdown."""
+    await close_database()
+    logger.info("Database connections closed")
+
+
 # Include API routes
 app.include_router(api_router)
 
@@ -79,11 +93,10 @@ async def login(request: Request, state: Optional[str] = None):
 async def auth_callback(
     code: str,
     state: Optional[str] = None,
-    db: AsyncSession = Depends(get_db)
 ):
     """Handle Discord OAuth callback."""
     try:
-        login_result = await login_with_discord(code, db)
+        login_result = await login_with_discord(code)
         
         # In a real app, you'd set an HTTP-only cookie here
         # For now, return the token (client should handle this securely)
@@ -158,7 +171,13 @@ async def admin_page(
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "ok", "service": "card-collector-web"}
+    db_health = await get_database_health()
+    return {
+        "status": "ok", 
+        "service": "card-collector-web",
+        "database": db_health,
+        "database_type": "mongodb" if is_mongodb() else "sql"
+    }
 
 
 if __name__ == "__main__":
