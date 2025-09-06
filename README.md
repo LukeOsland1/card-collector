@@ -303,13 +303,43 @@ WATERMARK_TEXT=Card Collector
 
 ## 🌐 **Web Interface**
 
-Once running, access these services:
+The Card Collector includes a full-featured web application that works seamlessly with the Discord bot:
 
+### **🖥️ Web Features**
+- **🏠 Home Page**: Welcome page with system status and statistics
+- **🎴 Browse Cards**: Search, filter, and discover all cards in the database
+- **📁 My Collection**: Personal dashboard to view and manage your cards
+- **⚙️ Admin Dashboard**: Admin-only interface for system management
+- **🔐 Discord Login**: Secure authentication using your Discord account
+- **📚 API Documentation**: Interactive Swagger/OpenAPI docs
+- **📱 Mobile Responsive**: Works perfectly on phones and tablets
+
+### **🌐 Access Your Web App**
+
+**Local Development:**
 - **🏠 Home Page**: http://localhost:8080
 - **🎴 Browse Cards**: http://localhost:8080/cards
 - **📁 My Collection**: http://localhost:8080/collection
 - **⚙️ Admin Dashboard**: http://localhost:8080/admin
 - **📚 API Docs**: http://localhost:8080/docs
+- **❤️ Health Check**: http://localhost:8080/api/health
+
+**After Deployment:**
+Replace `localhost:8080` with your deployed URL:
+- **Render.com**: `https://your-app-name.onrender.com`
+- **Heroku**: `https://your-app-name.herokuapp.com`
+- **Custom Domain**: `https://your-domain.com`
+
+### **🔐 Web Authentication**
+
+The web app uses **Discord OAuth2** for secure authentication:
+
+1. **Click "Login with Discord"** on the home page
+2. **Authorize the application** on Discord
+3. **Get redirected back** with full access to your collection
+4. **Enjoy the web interface** with all your Discord data synced
+
+**Note**: Web authentication is optional. The Discord bot works independently.
 
 ## 🎯 **Card Rarity System**
 
@@ -321,15 +351,59 @@ Once running, access these services:
 | **Epic** | Purple | Hard to find cards |
 | **Legendary** | Gold | Extremely rare, prestigious cards |
 
-## 🔧 **Deployment Options**
+## 🚀 **Web Hosting & Deployment**
 
-### **🪟 Windows (Recommended for Beginners)**
+### **🌐 Deploy to the Web (Production-Ready)**
+
+The Card Collector web application is ready for deployment on any modern hosting platform. Choose your preferred option:
+
+#### **Quick Deploy Options**
+| Platform | Difficulty | Cost | One-Click |
+|----------|------------|------|-----------|
+| **[Render.com](RENDER_DEPLOY.md)** | ⭐ Easy | Free Tier | ✅ Yes |
+| **[Heroku](DEPLOYMENT.md#heroku)** | ⭐ Easy | Free Tier | ✅ Yes |
+| **[DigitalOcean](DEPLOYMENT.md#digitalocean-app-platform)** | ⭐⭐ Medium | $5/month | ✅ Yes |
+| **[Railway](DEPLOYMENT.md)** | ⭐ Easy | Free Tier | ✅ Yes |
+| **[Vercel](DEPLOYMENT.md)** | ⭐⭐ Medium | Free Tier | ⚠️ Serverless |
+
+#### **Advanced Deploy Options**
+| Platform | Difficulty | Cost | Best For |
+|----------|------------|------|----------|
+| **[AWS](DEPLOYMENT.md#aws-elastic-beanstalk)** | ⭐⭐⭐ Hard | Variable | Enterprise |
+| **[Google Cloud](DEPLOYMENT.md#google-cloud-run)** | ⭐⭐⭐ Hard | Variable | Scalability |
+| **[Docker/VPS](DEPLOYMENT.md#docker-deployment)** | ⭐⭐⭐ Hard | $5-20/month | Full Control |
+
+### **📋 Pre-Deployment Checklist**
+
+Before deploying to any platform, ensure you have:
+
+- ✅ **Discord Bot Token** ([Get one here](https://discord.com/developers/applications))
+- ✅ **GitHub Repository** (public or private)
+- ✅ **Platform Account** (Render, Heroku, etc.)
+- ✅ **Domain Name** (optional, most platforms provide free subdomains)
+
+### **⚡ Quick Deploy to Render.com (Recommended)**
+
+**Render.com offers the easiest deployment with a generous free tier:**
+
+1. **Fork this repository** to your GitHub account
+2. **Sign up** at [Render.com](https://render.com) (free)
+3. **Click "New Web Service"** and connect your GitHub
+4. **Select your forked repository**
+5. **Follow the [detailed Render guide](RENDER_DEPLOY.md)**
+6. **Your app will be live** at `https://your-app-name.onrender.com`
+
+**Total time: ~10 minutes** ⏱️
+
+### **🔧 Local Deployment Options**
+
+#### **🪟 Windows (Recommended for Beginners)**
 - **One-click installer**: `install.bat`
 - **Production server**: `start.bat`
 - **Development mode**: `dev.bat`
 - **Configuration helper**: `config.bat`
 
-### **🐧 Linux/Mac (Manual)**
+#### **🐧 Linux/Mac (Manual)**
 ```bash
 # Setup virtual environment
 python -m venv venv
@@ -347,7 +421,7 @@ python start.py  # Production
 python run.py    # Development
 ```
 
-### **🐳 Docker (Production)**
+#### **🐳 Docker (Production)**
 ```bash
 # Development
 docker-compose -f docker-compose.dev.yml up

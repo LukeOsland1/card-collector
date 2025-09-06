@@ -22,12 +22,26 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Add CORS middleware
+# Configure CORS based on environment
+import os
+DEBUG = os.getenv("DEBUG", "false").lower() == "true"
+
+if DEBUG:
+    # Development: Allow all origins
+    cors_origins = ["*"]
+else:
+    # Production: Restrict to specific domains
+    cors_origins = [
+        "https://your-domain.com",
+        "https://www.your-domain.com",
+        # Add your actual production domains here
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 
