@@ -172,8 +172,10 @@ function previewImage(input) {
     }
 }
 
-// Form submission
-document.getElementById('cardSubmissionForm').addEventListener('submit', async function(e) {
+// Form submission (only if form exists)
+const submissionForm = document.getElementById('cardSubmissionForm');
+if (submissionForm) {
+    submissionForm.addEventListener('submit', async function(e) {
     e.preventDefault();
     
     const submitBtn = document.getElementById('submitBtn');
@@ -267,7 +269,8 @@ document.getElementById('cardSubmissionForm').addEventListener('submit', async f
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalText;
     }
-});
+    });
+}
 
 // Show result modal
 function showResultModal(title, body, type) {

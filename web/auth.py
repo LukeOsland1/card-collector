@@ -90,6 +90,16 @@ async def get_current_user(
         # Fall back to cookie-based authentication
         token = request.cookies.get("access_token")
     
+    # Debug logging
+    import os
+    if os.getenv("DEBUG", "false").lower() == "true":
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Auth check - Credentials: {'SET' if credentials else 'NOT SET'}")
+        logger.info(f"Auth check - Cookie token: {'SET' if token else 'NOT SET'}")
+        if token:
+            logger.info(f"Auth check - Token preview: {token[:20]}...")
+    
     if not token:
         raise AuthenticationError()
     
@@ -404,6 +414,16 @@ class OptionalAuth:
             token = credentials.credentials
         else:
             token = request.cookies.get("access_token")
+        
+        # Debug logging
+        import os
+        if os.getenv("DEBUG", "false").lower() == "true":
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"OptionalAuth check - Credentials: {'SET' if credentials else 'NOT SET'}")
+            logger.info(f"OptionalAuth check - Cookie token: {'SET' if token else 'NOT SET'}")
+            if token:
+                logger.info(f"OptionalAuth check - Token preview: {token[:20]}...")
             
         if not token:
             return None

@@ -99,6 +99,42 @@ async def logout():
     return response
 
 
+@app.get("/debug/test-login")
+async def test_login(request: Request, db = Depends(get_db_session)):
+    """Debug endpoint to test cookie authentication locally."""
+    import os
+    if os.getenv("DEBUG", "false").lower() != "true":
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    from .auth import create_access_token
+    from db.database import UserCRUD
+    
+    test_discord_id = 123456789
+    
+    # Create or get test user in database
+    test_user = await UserCRUD.get_or_create(db, test_discord_id)
+    
+    # Create a test token
+    test_token = create_access_token({
+        "discord_id": test_discord_id,
+        "username": "TestUser#0001"
+    })
+    
+    # Create response with cookie
+    response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+    is_secure = request.url.scheme == "https"
+    response.set_cookie(
+        key="access_token",
+        value=test_token,
+        httponly=True,
+        secure=is_secure,
+        samesite="lax",
+        max_age=30 * 60,
+    )
+    
+    return response
+
+
 @app.get("/auth/callback")
 async def auth_callback(
     code: str,
@@ -113,11 +149,13 @@ async def auth_callback(
         response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
         
         # Set JWT token as HTTP-only cookie for security
+        # In development (HTTP), secure=False; in production (HTTPS), secure=True
+        is_secure = request.url.scheme == "https"
         response.set_cookie(
             key="access_token",
             value=login_result["access_token"],
             httponly=True,
-            secure=True,  # Use HTTPS in production
+            secure=is_secure,  # Use HTTPS in production only
             samesite="lax",
             max_age=30 * 60,  # 30 minutes to match JWT expiry
         )

@@ -203,7 +203,12 @@ async def submit_card(
     return {
         "status": "success",
         "message": "Card submitted for review",
-        "card": CardResponse.from_orm(card)
+        "card": {
+            "id": card.id,
+            "name": name,
+            "rarity": rarity,
+            "status": "submitted",
+        }
     }
 
 
