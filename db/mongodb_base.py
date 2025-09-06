@@ -101,9 +101,9 @@ async def init_mongodb(mongodb_url: Optional[str] = None) -> None:
             client_options.update({
                 "tls": True,
                 "tlsAllowInvalidCertificates": True,  # Allow invalid certs to fix SSL issues
+                "tlsInsecure": True,  # Disable hostname verification
                 "retryWrites": True,
                 "w": "majority",
-                "ssl_cert_reqs": None,  # Disable certificate requirements
             })
             logger.info("Using MongoDB Atlas configuration with relaxed TLS settings")
         
