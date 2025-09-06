@@ -44,6 +44,11 @@ def check_dependencies():
     except ImportError:
         missing_deps.append("uvicorn")
     
+    try:
+        import greenlet
+    except ImportError:
+        missing_deps.append("greenlet")
+    
     if missing_deps:
         logger.error("Missing required dependencies:")
         for dep in missing_deps:
@@ -91,6 +96,14 @@ async def quick_start():
         logger.info("Database initialized")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}")
+        if "greenlet" in str(e):
+            logger.error("Missing greenlet dependency. Please run:")
+            logger.error("  python3 install_deps.py")
+            logger.error("Or manually: pip3 install greenlet")
+        elif "aiosqlite" in str(e):
+            logger.error("Missing aiosqlite dependency. Please run:")
+            logger.error("  python3 install_deps.py")
+            logger.error("Or manually: pip3 install aiosqlite")
         return
     
     # Start bot and web server concurrently
