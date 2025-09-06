@@ -1,9 +1,10 @@
 """MongoDB database configuration and connection management."""
 import logging
+import os
+from datetime import datetime
 from typing import AsyncGenerator, Optional
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
-import os
 
 from .mongodb_models import (
     Card,
@@ -19,6 +20,31 @@ logger = logging.getLogger(__name__)
 # Global MongoDB client
 mongodb_client: Optional[AsyncIOMotorClient] = None
 database = None
+
+
+async def create_collections_explicitly() -> None:
+    """Explicitly create collections if Beanie doesn't create them automatically."""
+    try:
+        db = await get_database()
+        
+        # Create collections for each model
+        models = [Card, CardInstance, User, GuildConfig, AuditLog, CardSubmission]
+        
+        for model in models:
+            collection_name = model.Settings.name
+            try:
+                # Create collection explicitly
+                await db.create_collection(collection_name)
+                logger.info(f"Created collection: {collection_name}")
+            except Exception as e:
+                # Collection might already exist, which is fine
+                logger.debug(f"Collection {collection_name} creation: {e}")
+        
+        logger.info("Explicit collection creation completed")
+        
+    except Exception as e:
+        logger.warning(f"Explicit collection creation failed: {e}")
+        # Don't raise exception - collections should be created by Beanie
 
 
 async def ensure_indexes() -> None:
@@ -87,9 +113,15 @@ async def init_mongodb(mongodb_url: Optional[str] = None) -> None:
         await mongodb_client.admin.command('ping')
         logger.info(f"Successfully connected to MongoDB at {mongodb_url}")
         
-        # Database will be created automatically when first document is inserted
-        # MongoDB creates databases lazily (on first write operation)
-        logger.info(f"Using MongoDB database: {database_name}")
+        # Explicitly create database by performing a write operation
+        # Some MongoDB services require explicit database creation
+        logger.info(f"Creating/accessing MongoDB database: {database_name}")
+        
+        # Create database by creating a temporary collection
+        temp_collection = database["_startup_check"]
+        await temp_collection.insert_one({"startup": True, "timestamp": datetime.utcnow()})
+        await temp_collection.drop()
+        logger.info("Database created successfully")
         
         # Initialize Beanie with document models
         # This will create collections and indexes automatically
@@ -110,9 +142,23 @@ async def init_mongodb(mongodb_url: Optional[str] = None) -> None:
         collections = await database.list_collection_names()
         logger.info(f"Available collections: {collections}")
         
+        # If no collections exist, create them explicitly
+        if not collections:
+            logger.info("No collections found, creating them explicitly")
+            await create_collections_explicitly()
+        
         # Create indexes explicitly if needed (Beanie should handle this automatically)
         await ensure_indexes()
         logger.info("Database indexes verified")
+        
+        # Verify collections were created after Beanie initialization
+        final_collections = await database.list_collection_names()
+        logger.info(f"Final collections after setup: {final_collections}")
+        
+        if not final_collections:
+            logger.warning("No collections were created - this may indicate an issue with Beanie setup")
+        else:
+            logger.info(f"✅ Database setup complete with {len(final_collections)} collections")
         
     except Exception as e:
         logger.error(f"Failed to connect to MongoDB: {e}")
