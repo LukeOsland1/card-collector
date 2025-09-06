@@ -85,6 +85,17 @@ async def quick_start():
         logger.info("3. Get your bot token from: https://discord.com/developers/applications")
         return
     
+    # Check for placeholder/test tokens
+    if bot_token.startswith(("test_", "your_", "placeholder_", "example_", "demo_")):
+        logger.error("Placeholder Discord bot token detected")
+        logger.info("You're using a test/placeholder token. Please:")
+        logger.info("1. Go to: https://discord.com/developers/applications")
+        logger.info("2. Create a new application or select existing one")
+        logger.info("3. Go to 'Bot' section and copy the real bot token")
+        logger.info("4. Update your .env file: DISCORD_BOT_TOKEN=your_real_token_here")
+        logger.info("5. Run the application again")
+        return
+    
     logger.info("Starting Card Collector in development mode...")
     
     # Initialize database quickly
@@ -118,6 +129,15 @@ async def quick_start():
         logger.info("Discord bot starting...")
     except Exception as e:
         logger.error(f"Failed to start Discord bot: {e}")
+        if "LoginFailure" in str(e) or "Improper token" in str(e) or "401 Unauthorized" in str(e):
+            logger.error("Discord bot authentication failed!")
+            logger.info("Your bot token is invalid. Please:")
+            logger.info("1. Go to: https://discord.com/developers/applications")
+            logger.info("2. Select your application")
+            logger.info("3. Go to 'Bot' section")
+            logger.info("4. Click 'Reset Token' if needed")
+            logger.info("5. Copy the new token")
+            logger.info("6. Update .env file: DISCORD_BOT_TOKEN=your_new_token_here")
         return
     
     # Start web server
