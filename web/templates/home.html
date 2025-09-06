@@ -1,0 +1,287 @@
+{% extends "layout.html" %}
+
+{% block title %}Home - Card Collector{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="row mb-5">
+    <div class="col-lg-12">
+        <div class="hero-section bg-primary text-white p-5 rounded">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h1 class="display-4 mb-3">
+                        <i class="fas fa-cards"></i> Card Collector
+                    </h1>
+                    <p class="lead mb-4">
+                        The ultimate Discord bot for managing collectible card communities. 
+                        Create, trade, and collect digital cards with your friends!
+                    </p>
+                    {% if not user %}
+                    <a href="{{ url_for('login') }}" class="btn btn-light btn-lg me-3">
+                        <i class="fab fa-discord"></i> Get Started
+                    </a>
+                    {% endif %}
+                    <a href="/api/docs" class="btn btn-outline-light btn-lg" target="_blank">
+                        <i class="fas fa-code"></i> View API
+                    </a>
+                </div>
+                <div class="col-lg-4 text-center">
+                    <i class="fas fa-gem" style="font-size: 8rem; opacity: 0.3;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="row mb-5">
+    <div class="col-lg-12">
+        <h2 class="text-center mb-5">
+            <i class="fas fa-star"></i> Features
+        </h2>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="feature-icon mb-3">
+                    <i class="fas fa-plus-circle fa-3x text-success"></i>
+                </div>
+                <h5 class="card-title">Card Creation</h5>
+                <p class="card-text">
+                    Create beautiful custom cards with images, descriptions, and rarity levels. 
+                    Full approval workflow for quality control.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="feature-icon mb-3">
+                    <i class="fas fa-users fa-3x text-info"></i>
+                </div>
+                <h5 class="card-title">Collection Management</h5>
+                <p class="card-text">
+                    Assign cards to users, track collections, and manage card expiry. 
+                    Perfect for events, rewards, and community engagement.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="feature-icon mb-3">
+                    <i class="fas fa-shield-alt fa-3x text-warning"></i>
+                </div>
+                <h5 class="card-title">Role-Based Permissions</h5>
+                <p class="card-text">
+                    Comprehensive permission system with admin and moderator roles. 
+                    Secure your server with fine-grained access controls.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Section -->
+{% if user %}
+<div class="row mb-5">
+    <div class="col-lg-12">
+        <h2 class="text-center mb-4">
+            <i class="fas fa-chart-bar"></i> Your Stats
+        </h2>
+        <div class="row">
+            <div class="col-md-3 mb-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-folder fa-2x mb-2"></i>
+                        <h4 id="user-card-count">-</h4>
+                        <small>Total Cards</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-star fa-2x mb-2"></i>
+                        <h4 id="user-rare-count">-</h4>
+                        <small>Rare+ Cards</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-trophy fa-2x mb-2"></i>
+                        <h4 id="user-rank">-</h4>
+                        <small>Server Rank</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-clock fa-2x mb-2"></i>
+                        <h4 id="user-expiring">-</h4>
+                        <small>Expiring Soon</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Commands Section -->
+<div class="row mb-5">
+    <div class="col-lg-12">
+        <h2 class="text-center mb-4">
+            <i class="fas fa-terminal"></i> Discord Commands
+        </h2>
+        <div class="row">
+            <div class="col-lg-6">
+                <h5><i class="fas fa-user"></i> User Commands</h5>
+                <div class="command-list">
+                    <div class="command-item mb-2">
+                        <code>/card my</code>
+                        <span class="text-muted">- View your card collection</span>
+                    </div>
+                    <div class="command-item mb-2">
+                        <code>/card submit</code>
+                        <span class="text-muted">- Submit a card for review</span>
+                    </div>
+                    <div class="command-item mb-2">
+                        <code>/card info &lt;id&gt;</code>
+                        <span class="text-muted">- Get card information</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <h5><i class="fas fa-crown"></i> Moderator Commands</h5>
+                <div class="command-list">
+                    <div class="command-item mb-2">
+                        <code>/card create</code>
+                        <span class="text-muted">- Create and approve a card</span>
+                    </div>
+                    <div class="command-item mb-2">
+                        <code>/card assign &lt;id&gt; &lt;user&gt;</code>
+                        <span class="text-muted">- Assign a card to a user</span>
+                    </div>
+                    <div class="command-item mb-2">
+                        <code>/card queue</code>
+                        <span class="text-muted">- View approval queue</span>
+                    </div>
+                    <div class="command-item mb-2">
+                        <code>/admin setup</code>
+                        <span class="text-muted">- Configure permissions</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+{% if user %}
+<div class="row mb-5">
+    <div class="col-lg-12">
+        <h2 class="text-center mb-4">
+            <i class="fas fa-clock"></i> Recent Activity
+        </h2>
+        <div class="card">
+            <div class="card-body">
+                <div id="recent-activity" class="text-center text-muted">
+                    <i class="fas fa-spinner fa-spin"></i> Loading recent activity...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Call to Action -->
+{% if not user %}
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card bg-light">
+            <div class="card-body text-center py-5">
+                <h3 class="mb-3">Ready to Start Collecting?</h3>
+                <p class="lead mb-4">
+                    Join thousands of users already building amazing card collections!
+                </p>
+                <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">
+                    <i class="fab fa-discord"></i> Login with Discord
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Load user stats if logged in
+{% if user %}
+document.addEventListener('DOMContentLoaded', function() {
+    loadUserStats();
+    loadRecentActivity();
+});
+
+async function loadUserStats() {
+    try {
+        const response = await fetch('/api/v1/users/me/stats', {
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+            }
+        });
+        
+        if (response.ok) {
+            const stats = await response.json();
+            document.getElementById('user-card-count').textContent = stats.total_cards || 0;
+            
+            // Calculate rare+ cards
+            const rareCount = (stats.rarity_breakdown?.rare || 0) + 
+                            (stats.rarity_breakdown?.epic || 0) + 
+                            (stats.rarity_breakdown?.legendary || 0);
+            document.getElementById('user-rare-count').textContent = rareCount;
+        }
+    } catch (error) {
+        console.error('Failed to load user stats:', error);
+    }
+}
+
+async function loadRecentActivity() {
+    try {
+        // This would load recent activity from the API
+        const activityContainer = document.getElementById('recent-activity');
+        
+        // Mock activity for now
+        setTimeout(() => {
+            activityContainer.innerHTML = `
+                <div class="activity-item">
+                    <i class="fas fa-plus-circle text-success"></i>
+                    <span>You received a new card: <strong>Dragon Slayer</strong></span>
+                    <small class="text-muted">2 hours ago</small>
+                </div>
+                <div class="activity-item mt-2">
+                    <i class="fas fa-check-circle text-info"></i>
+                    <span>Your card <strong>Magic Sword</strong> was approved</span>
+                    <small class="text-muted">1 day ago</small>
+                </div>
+            `;
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Failed to load recent activity:', error);
+        document.getElementById('recent-activity').innerHTML = 
+            '<p class="text-muted">Failed to load recent activity</p>';
+    }
+}
+{% endif %}
+</script>
+{% endblock %}

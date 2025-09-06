@@ -1,0 +1,527 @@
+{% extends "layout.html" %}
+
+{% block title %}Browse Cards - Card Collector{% endblock %}
+
+{% block extra_head %}
+<style>
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.card-item {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: none;
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+.card-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+.card-image {
+    height: 200px;
+    object-fit: cover;
+    width: 100%;
+}
+
+.rarity-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.rarity-common { background-color: #95a5a6; }
+.rarity-uncommon { background-color: #2ecc71; }
+.rarity-rare { background-color: #3498db; }
+.rarity-epic { background-color: #9b59b6; }
+.rarity-legendary { background-color: #f39c12; }
+
+.filter-sidebar {
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.no-cards {
+    text-align: center;
+    padding: 3rem;
+    color: #6c757d;
+}
+
+.card-stats {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.loading-spinner {
+    display: none;
+    text-align: center;
+    padding: 2rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-3">
+        <!-- Filters Sidebar -->
+        <div class="filter-sidebar">
+            <h5 class="mb-3">
+                <i class="fas fa-filter"></i> Filters
+            </h5>
+            
+            <!-- Search -->
+            <div class="mb-3">
+                <label for="searchInput" class="form-label">Search</label>
+                <input type="text" class="form-control" id="searchInput" 
+                       placeholder="Search cards by name or description...">
+            </div>
+            
+            <!-- Rarity Filter -->
+            <div class="mb-3">
+                <label for="rarityFilter" class="form-label">Rarity</label>
+                <select class="form-select" id="rarityFilter">
+                    <option value="">All Rarities</option>
+                    <option value="common">Common</option>
+                    <option value="uncommon">Uncommon</option>
+                    <option value="rare">Rare</option>
+                    <option value="epic">Epic</option>
+                    <option value="legendary">Legendary</option>
+                </select>
+            </div>
+            
+            <!-- Status Filter -->
+            <div class="mb-3">
+                <label for="statusFilter" class="form-label">Status</label>
+                <select class="form-select" id="statusFilter">
+                    <option value="approved">Approved Only</option>
+                    <option value="">All Status</option>
+                    <option value="submitted">Pending Approval</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+            </div>
+            
+            <!-- Tag Filter -->
+            <div class="mb-3">
+                <label for="tagInput" class="form-label">Tag</label>
+                <input type="text" class="form-control" id="tagInput" 
+                       placeholder="Enter tag...">
+            </div>
+            
+            <!-- Sort Options -->
+            <div class="mb-3">
+                <label for="sortBy" class="form-label">Sort By</label>
+                <select class="form-select" id="sortBy">
+                    <option value="created_at">Newest First</option>
+                    <option value="name">Name A-Z</option>
+                    <option value="rarity">Rarity</option>
+                    <option value="supply">Supply Count</option>
+                </select>
+            </div>
+            
+            <button class="btn btn-primary w-100" onclick="applyFilters()">
+                <i class="fas fa-search"></i> Apply Filters
+            </button>
+            
+            <button class="btn btn-outline-secondary w-100 mt-2" onclick="clearFilters()">
+                <i class="fas fa-times"></i> Clear All
+            </button>
+        </div>
+        
+        <!-- Quick Stats -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-pie"></i> Collection Stats
+                </h6>
+            </div>
+            <div class="card-body">
+                <div id="collection-stats" class="text-center">
+                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-9">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2>
+                    <i class="fas fa-th-large"></i> Browse Cards
+                </h2>
+                <p class="text-muted mb-0" id="results-count">Loading cards...</p>
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn btn-outline-primary active" id="grid-view" onclick="setView('grid')">
+                    <i class="fas fa-th"></i>
+                </button>
+                <button class="btn btn-outline-primary" id="list-view" onclick="setView('list')">
+                    <i class="fas fa-list"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Loading Spinner -->
+        <div class="loading-spinner" id="loading-spinner">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading cards...</p>
+        </div>
+        
+        <!-- Cards Grid -->
+        <div class="card-grid" id="cards-container">
+            <!-- Cards will be loaded here dynamically -->
+        </div>
+        
+        <!-- No Results -->
+        <div class="no-cards d-none" id="no-results">
+            <i class="fas fa-search fa-3x mb-3"></i>
+            <h4>No Cards Found</h4>
+            <p>Try adjusting your search criteria or filters.</p>
+        </div>
+        
+        <!-- Pagination -->
+        <nav aria-label="Cards pagination" class="mt-4" id="pagination-container" style="display: none;">
+            <ul class="pagination justify-content-center" id="pagination">
+                <!-- Pagination will be generated here -->
+            </ul>
+        </nav>
+        
+        <!-- Load More Button -->
+        <div class="text-center mt-4" id="load-more-container" style="display: none;">
+            <button class="btn btn-primary" id="load-more-btn" onclick="loadMoreCards()">
+                <i class="fas fa-plus"></i> Load More Cards
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Card Detail Modal -->
+<div class="modal fade" id="cardDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cardModalTitle">Card Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="cardModalBody">
+                <!-- Card details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                {% if user and user.is_moderator %}
+                <div class="btn-group">
+                    <button type="button" class="btn btn-success" onclick="assignCard()">
+                        <i class="fas fa-plus"></i> Assign to User
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let currentPage = 0;
+let currentFilters = {};
+let currentView = 'grid';
+let allCards = [];
+let hasMoreCards = true;
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    loadCards();
+    loadCollectionStats();
+    
+    // Setup search debounce
+    let searchTimeout;
+    document.getElementById('searchInput').addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(applyFilters, 500);
+    });
+});
+
+async function loadCards(append = false) {
+    if (!append) {
+        showLoading(true);
+        currentPage = 0;
+        allCards = [];
+    }
+    
+    const params = new URLSearchParams({
+        limit: 20,
+        offset: currentPage * 20,
+        ...currentFilters
+    });
+    
+    try {
+        const response = await fetch(`/api/v1/cards?${params}`);
+        const data = await response.json();
+        
+        if (data.items) {
+            if (append) {
+                allCards = [...allCards, ...data.items];
+            } else {
+                allCards = data.items;
+            }
+            
+            hasMoreCards = data.has_more;
+            renderCards();
+            updateResultsCount();
+            updateLoadMoreButton();
+        }
+    } catch (error) {
+        console.error('Failed to load cards:', error);
+        showError('Failed to load cards. Please try again.');
+    } finally {
+        showLoading(false);
+    }
+}
+
+function renderCards() {
+    const container = document.getElementById('cards-container');
+    const noResults = document.getElementById('no-results');
+    
+    if (allCards.length === 0) {
+        container.innerHTML = '';
+        noResults.classList.remove('d-none');
+        return;
+    }
+    
+    noResults.classList.add('d-none');
+    
+    if (currentView === 'grid') {
+        container.className = 'card-grid';
+        container.innerHTML = allCards.map(card => createCardGridItem(card)).join('');
+    } else {
+        container.className = 'list-group';
+        container.innerHTML = allCards.map(card => createCardListItem(card)).join('');
+    }
+}
+
+function createCardGridItem(card) {
+    const rarityClass = `rarity-${card.rarity}`;
+    
+    return `
+        <div class="card card-item shadow-sm" onclick="showCardDetail('${card.id}')">
+            <div class="position-relative">
+                <img src="${card.thumb_url || '/static/images/placeholder-card.jpg'}" 
+                     alt="${card.name}" class="card-image">
+                <span class="badge ${rarityClass} rarity-badge">${card.rarity}</span>
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">${card.name}</h5>
+                <p class="card-text text-truncate" style="max-height: 3rem;">
+                    ${card.description || 'No description available.'}
+                </p>
+                <div class="card-stats d-flex justify-content-between">
+                    <span><i class="fas fa-clone"></i> Supply: ${card.current_supply}${card.max_supply ? '/' + card.max_supply : ''}</span>
+                    <span><i class="fas fa-user"></i> Creator: <@${card.created_by_user_id}></span>
+                </div>
+                ${card.tags && card.tags.length > 0 ? `
+                <div class="mt-2">
+                    ${card.tags.slice(0, 3).map(tag => `<span class="badge bg-light text-dark me-1">${tag}</span>`).join('')}
+                    ${card.tags.length > 3 ? `<span class="text-muted">+${card.tags.length - 3} more</span>` : ''}
+                </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+}
+
+function createCardListItem(card) {
+    const rarityClass = `rarity-${card.rarity}`;
+    
+    return `
+        <div class="list-group-item list-group-item-action" onclick="showCardDetail('${card.id}')">
+            <div class="d-flex w-100 justify-content-between align-items-start">
+                <div class="d-flex">
+                    <img src="${card.thumb_url || '/static/images/placeholder-card.jpg'}" 
+                         alt="${card.name}" 
+                         style="width: 80px; height: 80px; object-fit: cover; border-radius: 0.5rem;"
+                         class="me-3">
+                    <div>
+                        <h5 class="mb-1">${card.name}</h5>
+                        <p class="mb-1 text-muted">${card.description || 'No description available.'}</p>
+                        <small class="text-muted">Supply: ${card.current_supply}${card.max_supply ? '/' + card.max_supply : ''}</small>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <span class="badge ${rarityClass} mb-2">${card.rarity}</span>
+                    <br>
+                    <small class="text-muted">${new Date(card.created_at).toLocaleDateString()}</small>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function showCardDetail(cardId) {
+    const modal = new bootstrap.Modal(document.getElementById('cardDetailModal'));
+    const modalTitle = document.getElementById('cardModalTitle');
+    const modalBody = document.getElementById('cardModalBody');
+    
+    modalTitle.textContent = 'Loading...';
+    modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+    modal.show();
+    
+    try {
+        const response = await fetch(`/api/v1/cards/${cardId}`);
+        const card = await response.json();
+        
+        modalTitle.textContent = card.name;
+        modalBody.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <img src="${card.image_url || card.thumb_url || '/static/images/placeholder-card.jpg'}" 
+                         alt="${card.name}" class="img-fluid rounded">
+                </div>
+                <div class="col-md-6">
+                    <h4>${card.name} <span class="badge rarity-${card.rarity}">${card.rarity}</span></h4>
+                    <p class="text-muted">${card.description || 'No description available.'}</p>
+                    
+                    <div class="mb-3">
+                        <strong>Supply:</strong> ${card.current_supply}${card.max_supply ? '/' + card.max_supply : ' (unlimited)'}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Status:</strong> 
+                        <span class="badge bg-${card.status === 'approved' ? 'success' : card.status === 'submitted' ? 'warning' : 'danger'}">
+                            ${card.status}
+                        </span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Created:</strong> ${new Date(card.created_at).toLocaleString()}
+                    </div>
+                    
+                    ${card.tags && card.tags.length > 0 ? `
+                    <div class="mb-3">
+                        <strong>Tags:</strong><br>
+                        ${card.tags.map(tag => `<span class="badge bg-light text-dark me-1 mt-1">${tag}</span>`).join('')}
+                    </div>
+                    ` : ''}
+                    
+                    <div class="mb-3">
+                        <strong>ID:</strong> <code>${card.id}</code>
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Failed to load card details:', error);
+        modalBody.innerHTML = '<div class="alert alert-danger">Failed to load card details.</div>';
+    }
+}
+
+function applyFilters() {
+    currentFilters = {
+        search: document.getElementById('searchInput').value.trim() || undefined,
+        rarity: document.getElementById('rarityFilter').value || undefined,
+        status: document.getElementById('statusFilter').value || undefined,
+        tag: document.getElementById('tagInput').value.trim() || undefined
+    };
+    
+    // Remove undefined values
+    Object.keys(currentFilters).forEach(key => {
+        if (currentFilters[key] === undefined) {
+            delete currentFilters[key];
+        }
+    });
+    
+    loadCards();
+}
+
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('rarityFilter').value = '';
+    document.getElementById('statusFilter').value = 'approved';
+    document.getElementById('tagInput').value = '';
+    currentFilters = {};
+    loadCards();
+}
+
+function setView(view) {
+    currentView = view;
+    document.getElementById('grid-view').classList.toggle('active', view === 'grid');
+    document.getElementById('list-view').classList.toggle('active', view === 'list');
+    renderCards();
+}
+
+function loadMoreCards() {
+    currentPage++;
+    loadCards(true);
+}
+
+function updateResultsCount() {
+    const count = allCards.length;
+    const total = hasMoreCards ? `${count}+` : count;
+    document.getElementById('results-count').textContent = `Showing ${count} cards`;
+}
+
+function updateLoadMoreButton() {
+    const container = document.getElementById('load-more-container');
+    const button = document.getElementById('load-more-btn');
+    
+    if (hasMoreCards && allCards.length > 0) {
+        container.style.display = 'block';
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-plus"></i> Load More Cards';
+    } else {
+        container.style.display = 'none';
+    }
+}
+
+function showLoading(show) {
+    document.getElementById('loading-spinner').style.display = show ? 'block' : 'none';
+}
+
+function showError(message) {
+    // You could implement a toast notification system here
+    console.error(message);
+}
+
+async function loadCollectionStats() {
+    try {
+        const response = await fetch('/api/v1/admin/stats', {
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+            }
+        });
+        
+        if (response.ok) {
+            const stats = await response.json();
+            document.getElementById('collection-stats').innerHTML = `
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="h5 mb-0">${stats.total_cards || 0}</div>
+                        <small class="text-muted">Total Cards</small>
+                    </div>
+                    <div class="col-6">
+                        <div class="h5 mb-0">${stats.total_instances || 0}</div>
+                        <small class="text-muted">In Collections</small>
+                    </div>
+                </div>
+            `;
+        }
+    } catch (error) {
+        document.getElementById('collection-stats').innerHTML = 
+            '<p class="text-muted mb-0">Stats unavailable</p>';
+    }
+}
+</script>
+{% endblock %}

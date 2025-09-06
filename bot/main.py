@@ -33,6 +33,15 @@ class CardBot(commands.Bot):
         async with async_engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         logger.info("Database tables created/verified")
+        
+        # Load command extensions
+        try:
+            await self.load_extension("bot.commands")
+            await self.load_extension("bot.admin")
+            logger.info("Loaded bot commands and admin commands")
+        except Exception as e:
+            logger.error(f"Failed to load commands: {e}")
+            raise
 
     async def on_ready(self):
         """Called when bot is ready."""

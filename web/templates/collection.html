@@ -1,0 +1,663 @@
+{% extends "layout.html" %}
+
+{% block title %}My Collection - Card Collector{% endblock %}
+
+{% block extra_head %}
+<style>
+.collection-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    margin-bottom: 2rem;
+}
+
+.rarity-tab {
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.rarity-tab.active {
+    border-color: var(--bs-primary);
+    background-color: var(--bs-primary);
+    color: white;
+}
+
+.rarity-common.active { border-color: #95a5a6; background-color: #95a5a6; }
+.rarity-uncommon.active { border-color: #2ecc71; background-color: #2ecc71; }
+.rarity-rare.active { border-color: #3498db; background-color: #3498db; }
+.rarity-epic.active { border-color: #9b59b6; background-color: #9b59b6; }
+.rarity-legendary.active { border-color: #f39c12; background-color: #f39c12; }
+
+.card-instance {
+    position: relative;
+    transition: transform 0.2s ease;
+}
+
+.card-instance:hover {
+    transform: translateY(-3px);
+}
+
+.card-instance.expired {
+    opacity: 0.6;
+}
+
+.card-instance.expiring-soon {
+    border: 2px solid #ffc107;
+}
+
+.expiry-badge {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    font-size: 0.7rem;
+    z-index: 10;
+}
+
+.collection-stats {
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+}
+
+.empty-collection {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #6c757d;
+}
+
+.masonry-grid {
+    column-count: 1;
+    column-gap: 1.5rem;
+}
+
+@media (min-width: 576px) {
+    .masonry-grid { column-count: 2; }
+}
+
+@media (min-width: 768px) {
+    .masonry-grid { column-count: 3; }
+}
+
+@media (min-width: 992px) {
+    .masonry-grid { column-count: 4; }
+}
+
+@media (min-width: 1200px) {
+    .masonry-grid { column-count: 5; }
+}
+
+.masonry-item {
+    display: inline-block;
+    width: 100%;
+    margin-bottom: 1.5rem;
+    break-inside: avoid;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Collection Header -->
+<div class="collection-header">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h1 class="mb-2">
+                <i class="fas fa-folder"></i> My Collection
+            </h1>
+            <p class="mb-0 lead" id="collection-summary">
+                Loading your collection...
+            </p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <div class="btn-group">
+                <button class="btn btn-light" onclick="exportCollection()">
+                    <i class="fas fa-download"></i> Export
+                </button>
+                <button class="btn btn-outline-light" onclick="shareCollection()">
+                    <i class="fas fa-share"></i> Share
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Collection Stats -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-clone fa-2x mb-2"></i>
+                <h4 id="total-cards">0</h4>
+                <small>Total Cards</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-check-circle fa-2x mb-2"></i>
+                <h4 id="active-cards">0</h4>
+                <small>Active Cards</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-clock fa-2x mb-2"></i>
+                <h4 id="expiring-cards">0</h4>
+                <small>Expiring Soon</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-star fa-2x mb-2"></i>
+                <h4 id="rare-cards">0</h4>
+                <small>Rare+ Cards</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters and Controls -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <!-- Rarity Tabs -->
+        <div class="btn-group w-100" role="group" id="rarity-tabs">
+            <button type="button" class="btn btn-outline-secondary rarity-tab active" 
+                    onclick="filterByRarity('all')" data-rarity="all">
+                <i class="fas fa-th"></i> All
+            </button>
+            <button type="button" class="btn btn-outline-secondary rarity-tab rarity-common" 
+                    onclick="filterByRarity('common')" data-rarity="common">
+                <i class="fas fa-circle"></i> Common
+            </button>
+            <button type="button" class="btn btn-outline-secondary rarity-tab rarity-uncommon" 
+                    onclick="filterByRarity('uncommon')" data-rarity="uncommon">
+                <i class="fas fa-circle"></i> Uncommon
+            </button>
+            <button type="button" class="btn btn-outline-secondary rarity-tab rarity-rare" 
+                    onclick="filterByRarity('rare')" data-rarity="rare">
+                <i class="fas fa-circle"></i> Rare
+            </button>
+            <button type="button" class="btn btn-outline-secondary rarity-tab rarity-epic" 
+                    onclick="filterByRarity('epic')" data-rarity="epic">
+                <i class="fas fa-circle"></i> Epic
+            </button>
+            <button type="button" class="btn btn-outline-secondary rarity-tab rarity-legendary" 
+                    onclick="filterByRarity('legendary')" data-rarity="legendary">
+                <i class="fas fa-circle"></i> Legendary
+            </button>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <!-- Search and Sort -->
+        <div class="input-group">
+            <input type="text" class="form-control" id="search-input" 
+                   placeholder="Search your cards...">
+            <select class="form-select" id="sort-select" onchange="sortCollection()">
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="name">Name A-Z</option>
+                <option value="rarity">Rarity</option>
+                <option value="expiry">Expiring Soon</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- View Toggle -->
+<div class="row mb-3">
+    <div class="col-md-6">
+        <div class="btn-group">
+            <button class="btn btn-sm btn-outline-primary" onclick="toggleActiveOnly()">
+                <i class="fas fa-filter"></i> <span id="active-toggle-text">Show Active Only</span>
+            </button>
+        </div>
+    </div>
+    <div class="col-md-6 text-md-end">
+        <div class="btn-group">
+            <button class="btn btn-sm btn-outline-primary active" id="grid-view-btn" onclick="setView('grid')">
+                <i class="fas fa-th"></i> Grid
+            </button>
+            <button class="btn btn-sm btn-outline-primary" id="list-view-btn" onclick="setView('list')">
+                <i class="fas fa-list"></i> List
+            </button>
+            <button class="btn btn-sm btn-outline-primary" id="masonry-view-btn" onclick="setView('masonry')">
+                <i class="fas fa-th-large"></i> Masonry
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Collection Display -->
+<div id="collection-container">
+    <!-- Loading State -->
+    <div class="text-center py-5" id="loading-state">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Loading your collection...</p>
+    </div>
+    
+    <!-- Empty State -->
+    <div class="empty-collection d-none" id="empty-state">
+        <i class="fas fa-folder-open fa-4x mb-3"></i>
+        <h3>No Cards Found</h3>
+        <p>You don't have any cards matching the current filters.</p>
+        <a href="{{ url_for('cards_page') }}" class="btn btn-primary">
+            <i class="fas fa-search"></i> Browse All Cards
+        </a>
+    </div>
+    
+    <!-- Cards Display -->
+    <div id="cards-display" style="display: none;">
+        <!-- Cards will be rendered here -->
+    </div>
+</div>
+
+<!-- Load More Button -->
+<div class="text-center mt-4" id="load-more-container" style="display: none;">
+    <button class="btn btn-outline-primary" onclick="loadMoreCards()">
+        <i class="fas fa-plus"></i> Load More Cards
+    </button>
+</div>
+
+<!-- Card Detail Modal -->
+<div class="modal fade" id="cardInstanceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Card Instance Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="instance-modal-body">
+                <!-- Content loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let collection = [];
+let filteredCollection = [];
+let currentRarity = 'all';
+let currentView = 'grid';
+let activeOnly = true;
+let currentPage = 0;
+let searchTimeout;
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadCollection();
+    
+    // Setup search debounce
+    document.getElementById('search-input').addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(filterCollection, 300);
+    });
+});
+
+async function loadCollection() {
+    try {
+        const params = new URLSearchParams({
+            active_only: activeOnly,
+            limit: 50,
+            offset: currentPage * 50
+        });
+        
+        const response = await fetch(`/api/v1/instances?${params}`, {
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load collection');
+        }
+        
+        const data = await response.json();
+        
+        if (currentPage === 0) {
+            collection = data.items;
+        } else {
+            collection = [...collection, ...data.items];
+        }
+        
+        updateStats();
+        filterCollection();
+        
+        // Hide loading state
+        document.getElementById('loading-state').style.display = 'none';
+        
+    } catch (error) {
+        console.error('Failed to load collection:', error);
+        document.getElementById('loading-state').innerHTML = 
+            '<div class="alert alert-danger">Failed to load collection. Please try again.</div>';
+    }
+}
+
+function updateStats() {
+    const totalCards = collection.length;
+    const activeCards = collection.filter(instance => instance.is_active).length;
+    const expiringCards = collection.filter(instance => 
+        instance.expires_at && 
+        new Date(instance.expires_at) - new Date() < 24 * 60 * 60 * 1000 &&
+        instance.is_active
+    ).length;
+    const rareCards = collection.filter(instance => 
+        ['rare', 'epic', 'legendary'].includes(instance.card?.rarity)
+    ).length;
+    
+    document.getElementById('total-cards').textContent = totalCards;
+    document.getElementById('active-cards').textContent = activeCards;
+    document.getElementById('expiring-cards').textContent = expiringCards;
+    document.getElementById('rare-cards').textContent = rareCards;
+    
+    // Update summary
+    document.getElementById('collection-summary').textContent = 
+        `${totalCards} cards in your collection • ${activeCards} active • ${expiringCards} expiring soon`;
+}
+
+function filterCollection() {
+    let filtered = [...collection];
+    
+    // Filter by rarity
+    if (currentRarity !== 'all') {
+        filtered = filtered.filter(instance => instance.card?.rarity === currentRarity);
+    }
+    
+    // Filter by search
+    const searchTerm = document.getElementById('search-input').value.toLowerCase();
+    if (searchTerm) {
+        filtered = filtered.filter(instance => 
+            instance.card?.name.toLowerCase().includes(searchTerm) ||
+            instance.card?.description?.toLowerCase().includes(searchTerm) ||
+            instance.card?.tags?.some(tag => tag.toLowerCase().includes(searchTerm))
+        );
+    }
+    
+    filteredCollection = filtered;
+    renderCollection();
+}
+
+function renderCollection() {
+    const container = document.getElementById('cards-display');
+    const emptyState = document.getElementById('empty-state');
+    
+    if (filteredCollection.length === 0) {
+        container.style.display = 'none';
+        emptyState.classList.remove('d-none');
+        return;
+    }
+    
+    emptyState.classList.add('d-none');
+    container.style.display = 'block';
+    
+    const sortedCollection = sortCollection(filteredCollection);
+    
+    if (currentView === 'grid') {
+        container.className = 'row';
+        container.innerHTML = sortedCollection.map(instance => createGridCard(instance)).join('');
+    } else if (currentView === 'list') {
+        container.className = 'list-group';
+        container.innerHTML = sortedCollection.map(instance => createListCard(instance)).join('');
+    } else if (currentView === 'masonry') {
+        container.className = 'masonry-grid';
+        container.innerHTML = sortedCollection.map(instance => createMasonryCard(instance)).join('');
+    }
+}
+
+function createGridCard(instance) {
+    const card = instance.card;
+    const isExpiring = instance.expires_at && 
+        new Date(instance.expires_at) - new Date() < 24 * 60 * 60 * 1000;
+    const isExpired = instance.expires_at && new Date(instance.expires_at) < new Date();
+    
+    return `
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+            <div class="card card-instance ${isExpired ? 'expired' : ''} ${isExpiring && !isExpired ? 'expiring-soon' : ''}" 
+                 onclick="showInstanceDetail('${instance.id}')">
+                ${isExpiring && !isExpired ? '<span class="badge bg-warning expiry-badge">Expiring Soon</span>' : ''}
+                ${isExpired ? '<span class="badge bg-danger expiry-badge">Expired</span>' : ''}
+                ${instance.is_locked ? '<span class="badge bg-secondary expiry-badge" style="top: 30px;">Locked</span>' : ''}
+                
+                <img src="${card?.thumb_url || '/static/images/placeholder-card.jpg'}" 
+                     class="card-img-top" alt="${card?.name}" style="height: 200px; object-fit: cover;">
+                
+                <div class="card-body">
+                    <h5 class="card-title">${card?.name || 'Unknown Card'}</h5>
+                    <p class="card-text text-muted small">
+                        <i class="fas fa-calendar"></i> 
+                        Received ${new Date(instance.assigned_at).toLocaleDateString()}
+                    </p>
+                    ${instance.expires_at ? `
+                    <p class="card-text text-muted small">
+                        <i class="fas fa-clock"></i> 
+                        Expires ${new Date(instance.expires_at).toLocaleDateString()}
+                    </p>
+                    ` : ''}
+                    <span class="badge rarity-${card?.rarity}">${card?.rarity || 'unknown'}</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function createListCard(instance) {
+    const card = instance.card;
+    const isExpiring = instance.expires_at && 
+        new Date(instance.expires_at) - new Date() < 24 * 60 * 60 * 1000;
+    const isExpired = instance.expires_at && new Date(instance.expires_at) < new Date();
+    
+    return `
+        <div class="list-group-item list-group-item-action ${isExpired ? 'expired' : ''}" 
+             onclick="showInstanceDetail('${instance.id}')">
+            <div class="d-flex w-100 justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <img src="${card?.thumb_url || '/static/images/placeholder-card.jpg'}" 
+                         alt="${card?.name}" 
+                         style="width: 60px; height: 60px; object-fit: cover; border-radius: 0.5rem;"
+                         class="me-3">
+                    <div>
+                        <h5 class="mb-1">${card?.name || 'Unknown Card'}</h5>
+                        <p class="mb-1 text-muted">${card?.description || ''}</p>
+                        <small class="text-muted">
+                            Received ${new Date(instance.assigned_at).toLocaleDateString()}
+                            ${instance.expires_at ? ` • Expires ${new Date(instance.expires_at).toLocaleDateString()}` : ''}
+                        </small>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <span class="badge rarity-${card?.rarity} mb-1">${card?.rarity || 'unknown'}</span>
+                    ${isExpiring && !isExpired ? '<br><span class="badge bg-warning">Expiring Soon</span>' : ''}
+                    ${isExpired ? '<br><span class="badge bg-danger">Expired</span>' : ''}
+                    ${instance.is_locked ? '<br><span class="badge bg-secondary">Locked</span>' : ''}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function createMasonryCard(instance) {
+    const card = instance.card;
+    const isExpiring = instance.expires_at && 
+        new Date(instance.expires_at) - new Date() < 24 * 60 * 60 * 1000;
+    const isExpired = instance.expires_at && new Date(instance.expires_at) < new Date();
+    
+    return `
+        <div class="masonry-item">
+            <div class="card card-instance ${isExpired ? 'expired' : ''} ${isExpiring && !isExpired ? 'expiring-soon' : ''}" 
+                 onclick="showInstanceDetail('${instance.id}')">
+                ${isExpiring && !isExpired ? '<span class="badge bg-warning expiry-badge">Expiring Soon</span>' : ''}
+                ${isExpired ? '<span class="badge bg-danger expiry-badge">Expired</span>' : ''}
+                
+                <img src="${card?.thumb_url || '/static/images/placeholder-card.jpg'}" 
+                     class="card-img-top" alt="${card?.name}">
+                
+                <div class="card-body">
+                    <h6 class="card-title">${card?.name || 'Unknown Card'}</h6>
+                    <span class="badge rarity-${card?.rarity}">${card?.rarity || 'unknown'}</span>
+                    <p class="card-text text-muted small mt-2">
+                        ${new Date(instance.assigned_at).toLocaleDateString()}
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function sortCollection(items) {
+    const sortBy = document.getElementById('sort-select').value;
+    
+    return [...items].sort((a, b) => {
+        switch (sortBy) {
+            case 'newest':
+                return new Date(b.assigned_at) - new Date(a.assigned_at);
+            case 'oldest':
+                return new Date(a.assigned_at) - new Date(b.assigned_at);
+            case 'name':
+                return (a.card?.name || '').localeCompare(b.card?.name || '');
+            case 'rarity':
+                const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+                return rarityOrder.indexOf(b.card?.rarity) - rarityOrder.indexOf(a.card?.rarity);
+            case 'expiry':
+                if (!a.expires_at && !b.expires_at) return 0;
+                if (!a.expires_at) return 1;
+                if (!b.expires_at) return -1;
+                return new Date(a.expires_at) - new Date(b.expires_at);
+            default:
+                return 0;
+        }
+    });
+}
+
+function filterByRarity(rarity) {
+    currentRarity = rarity;
+    
+    // Update tab states
+    document.querySelectorAll('.rarity-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelector(`[data-rarity="${rarity}"]`).classList.add('active');
+    
+    filterCollection();
+}
+
+function setView(view) {
+    currentView = view;
+    
+    // Update button states
+    document.querySelectorAll('[id$="-view-btn"]').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.getElementById(`${view}-view-btn`).classList.add('active');
+    
+    renderCollection();
+}
+
+function toggleActiveOnly() {
+    activeOnly = !activeOnly;
+    const toggleText = document.getElementById('active-toggle-text');
+    toggleText.textContent = activeOnly ? 'Show All Cards' : 'Show Active Only';
+    
+    // Reload collection with new filter
+    currentPage = 0;
+    loadCollection();
+}
+
+function sortCollection() {
+    renderCollection();
+}
+
+async function showInstanceDetail(instanceId) {
+    const modal = new bootstrap.Modal(document.getElementById('cardInstanceModal'));
+    const modalBody = document.getElementById('instance-modal-body');
+    
+    modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+    modal.show();
+    
+    try {
+        const response = await fetch(`/api/v1/instances/${instanceId}`, {
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load instance details');
+        }
+        
+        const instance = await response.json();
+        const card = instance.card;
+        
+        modalBody.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <img src="${card.image_url || card.thumb_url || '/static/images/placeholder-card.jpg'}" 
+                         alt="${card.name}" class="img-fluid rounded">
+                </div>
+                <div class="col-md-6">
+                    <h4>${card.name} <span class="badge rarity-${card.rarity}">${card.rarity}</span></h4>
+                    <p class="text-muted">${card.description || 'No description available.'}</p>
+                    
+                    <div class="mb-3">
+                        <strong>Instance ID:</strong> <code>${instance.id}</code>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Status:</strong>
+                        <span class="badge bg-${instance.is_active ? 'success' : 'danger'}">
+                            ${instance.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                        ${instance.is_locked ? '<span class="badge bg-secondary ms-1">Locked</span>' : ''}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Received:</strong> ${new Date(instance.assigned_at).toLocaleString()}
+                    </div>
+                    
+                    ${instance.expires_at ? `
+                    <div class="mb-3">
+                        <strong>Expires:</strong> ${new Date(instance.expires_at).toLocaleString()}
+                        ${instance.is_expired ? '<span class="badge bg-danger ms-2">Expired</span>' : ''}
+                    </div>
+                    ` : '<div class="mb-3"><strong>Expires:</strong> Never</div>'}
+                    
+                    ${instance.notes ? `
+                    <div class="mb-3">
+                        <strong>Notes:</strong><br>
+                        <div class="bg-light p-2 rounded">${instance.notes}</div>
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Failed to load instance details:', error);
+        modalBody.innerHTML = '<div class="alert alert-danger">Failed to load instance details.</div>';
+    }
+}
+
+function exportCollection() {
+    // Implementation for exporting collection
+    alert('Export functionality will be implemented soon!');
+}
+
+function shareCollection() {
+    // Implementation for sharing collection
+    alert('Share functionality will be implemented soon!');
+}
+
+function loadMoreCards() {
+    currentPage++;
+    loadCollection();
+}
+</script>
+{% endblock %}

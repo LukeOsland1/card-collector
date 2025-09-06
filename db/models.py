@@ -187,3 +187,132 @@ class CardInstance(Base):
 
     def __repr__(self) -> str:
         return f"<CardInstance(id={self.id}, card_id={self.card_id}, owner={self.owner_user_id})>"
+
+
+class User(Base):
+    """User model for Discord users."""
+    
+    __tablename__ = "users"
+    
+    id: Mapped[str] = mapped_column(
+        GUID, primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    discord_id: Mapped[int] = mapped_column(BIGINT, unique=True, nullable=False)
+    username: Mapped[Optional[str]] = mapped_column(String(255))
+    discriminator: Mapped[Optional[str]] = mapped_column(String(10))
+    avatar: Mapped[Optional[str]] = mapped_column(String(255))
+    global_name: Mapped[Optional[str]] = mapped_column(String(255))
+    
+    # Activity tracking
+    first_seen: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    last_activity: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    
+    # Preferences
+    timezone: Mapped[Optional[str]] = mapped_column(String(50))
+    notification_preferences: Mapped[Optional[dict]] = mapped_column(JSON)
+    
+    def __repr__(self) -> str:
+        return f"<User(discord_id={self.discord_id}, username={self.username})>"
+
+
+class GuildConfig(Base):
+    """Guild configuration model."""
+    
+    __tablename__ = "guild_configs"
+    
+    id: Mapped[str] = mapped_column(
+        GUID, primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    guild_id: Mapped[int] = mapped_column(BIGINT, unique=True, nullable=False)
+    guild_name: Mapped[Optional[str]] = mapped_column(String(255))
+    
+    # Permission configuration
+    admin_role_ids: Mapped[Optional[list]] = mapped_column(JSON)
+    mod_role_ids: Mapped[Optional[list]] = mapped_column(JSON)
+    admin_user_ids: Mapped[Optional[list]] = mapped_column(JSON)
+    mod_user_ids: Mapped[Optional[list]] = mapped_column(JSON)
+    
+    # Channel configuration
+    card_channel_id: Mapped[Optional[int]] = mapped_column(BIGINT)
+    log_channel_id: Mapped[Optional[int]] = mapped_column(BIGINT)
+    notification_channel_id: Mapped[Optional[int]] = mapped_column(BIGINT)
+    
+    # Feature configuration
+    auto_approve_cards: Mapped[bool] = mapped_column(Boolean, default=False)
+    allow_card_submissions: Mapped[bool] = mapped_column(Boolean, default=True)
+    max_user_submissions: Mapped[int] = mapped_column(Integer, default=5)
+    submission_cooldown_hours: Mapped[int] = mapped_column(Integer, default=24)
+    
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    
+    def __repr__(self) -> str:
+        return f"<GuildConfig(guild_id={self.guild_id}, name={self.guild_name})>"
+
+
+class AuditLog(Base):
+    """Audit log model for tracking actions."""
+    
+    __tablename__ = "audit_logs"
+    
+    id: Mapped[str] = mapped_column(
+        GUID, primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    
+    # Action details
+    actor_user_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    action: Mapped[str] = mapped_column(String(100), nullable=False)
+    target_type: Mapped[Optional[str]] = mapped_column(String(50))
+    target_id: Mapped[Optional[str]] = mapped_column(String(255))
+    
+    # Additional context
+    guild_id: Mapped[Optional[int]] = mapped_column(BIGINT)
+    channel_id: Mapped[Optional[int]] = mapped_column(BIGINT)
+    meta: Mapped[Optional[dict]] = mapped_column(JSON)
+    
+    # Timestamp
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    
+    # Index for performance
+    __table_args__ = (
+        Index("ix_audit_logs_actor_created", "actor_user_id", "created_at"),
+        Index("ix_audit_logs_action_created", "action", "created_at"),
+        Index("ix_audit_logs_target", "target_type", "target_id"),
+    )
+    
+    def __repr__(self) -> str:
+        return f"<AuditLog(id={self.id}, action={self.action}, actor={self.actor_user_id})>"
+
+
+class CardSubmission(Base):
+    """Card submission tracking (separate from main Card model)."""
+    
+    __tablename__ = "card_submissions"
+    
+    id: Mapped[str] = mapped_column(
+        GUID, primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    card_id: Mapped[str] = mapped_column(GUID, ForeignKey("cards.id"), nullable=False)
+    submitter_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
+    
+    # Submission details
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    submission_message: Mapped[Optional[str]] = mapped_column(Text)
+    
+    # Review details
+    reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    reviewed_by: Mapped[Optional[int]] = mapped_column(BIGINT)
+    review_decision: Mapped[Optional[str]] = mapped_column(String(20))  # approved, rejected
+    review_notes: Mapped[Optional[str]] = mapped_column(Text)
+    
+    def __repr__(self) -> str:
+        return f"<CardSubmission(id={self.id}, card_id={self.card_id}, status={self.review_decision})>"

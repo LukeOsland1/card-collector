@@ -1,0 +1,758 @@
+{% extends "layout.html" %}
+
+{% block title %}Admin Dashboard - Card Collector{% endblock %}
+
+{% block extra_head %}
+<style>
+.admin-header {
+    background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    transition: transform 0.2s ease;
+    border: none;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.audit-log-entry {
+    padding: 1rem;
+    border-left: 4px solid #dee2e6;
+    margin-bottom: 1rem;
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+}
+
+.audit-log-entry.critical {
+    border-left-color: #dc3545;
+    background: #fff5f5;
+}
+
+.audit-log-entry.warning {
+    border-left-color: #ffc107;
+    background: #fffbf0;
+}
+
+.audit-log-entry.info {
+    border-left-color: #0dcaf0;
+    background: #f0fbff;
+}
+
+.pending-card {
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: white;
+}
+
+.pending-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin: 1rem 0;
+}
+
+.quick-actions {
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+}
+</style>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Admin Header -->
+<div class="admin-header">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h1 class="mb-2">
+                <i class="fas fa-cog"></i> Admin Dashboard
+            </h1>
+            <p class="mb-0 lead">
+                Manage your card collection system
+            </p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <div class="dropdown">
+                <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-tools"></i> Quick Actions
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" onclick="bulkApproveCards()">
+                        <i class="fas fa-check-double"></i> Bulk Approve Cards
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" onclick="exportData()">
+                        <i class="fas fa-download"></i> Export Data
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" onclick="cleanupExpired()">
+                        <i class="fas fa-broom"></i> Cleanup Expired Cards
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="/api/docs" target="_blank">
+                        <i class="fas fa-code"></i> API Documentation
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card text-center">
+            <div class="card-body">
+                <div class="text-primary mb-2">
+                    <i class="fas fa-cards fa-2x"></i>
+                </div>
+                <h3 id="total-cards" class="card-title">-</h3>
+                <p class="card-text text-muted">Total Cards</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card text-center">
+            <div class="card-body">
+                <div class="text-success mb-2">
+                    <i class="fas fa-users fa-2x"></i>
+                </div>
+                <h3 id="total-users" class="card-title">-</h3>
+                <p class="card-text text-muted">Total Users</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card text-center">
+            <div class="card-body">
+                <div class="text-info mb-2">
+                    <i class="fas fa-clone fa-2x"></i>
+                </div>
+                <h3 id="total-instances" class="card-title">-</h3>
+                <p class="card-text text-muted">Card Instances</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card text-center">
+            <div class="card-body">
+                <div class="text-warning mb-2">
+                    <i class="fas fa-clock fa-2x"></i>
+                </div>
+                <h3 id="pending-cards" class="card-title">-</h3>
+                <p class="card-text text-muted">Pending Approval</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Dashboard Content -->
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Pending Cards -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-clock"></i> Pending Card Approvals
+                </h5>
+                <button class="btn btn-sm btn-success" onclick="bulkApproveCards()">
+                    <i class="fas fa-check-double"></i> Bulk Approve
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="pending-cards-container">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status"></div>
+                        <p class="mt-2">Loading pending cards...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Charts -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line"></i> Analytics
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Cards by Rarity</h6>
+                        <div class="chart-container">
+                            <canvas id="rarityChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Activity Over Time</h6>
+                        <div class="chart-container">
+                            <canvas id="activityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-history"></i> Recent Activity
+                </h5>
+            </div>
+            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                <div id="audit-logs-container">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status"></div>
+                        <p class="mt-2">Loading recent activity...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt"></i> Quick Actions
+                </h5>
+            </div>
+            <div class="card-body quick-actions">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" onclick="createCard()">
+                        <i class="fas fa-plus"></i> Create New Card
+                    </button>
+                    <button class="btn btn-info" onclick="manageUsers()">
+                        <i class="fas fa-users-cog"></i> Manage Users
+                    </button>
+                    <button class="btn btn-warning" onclick="viewReports()">
+                        <i class="fas fa-chart-bar"></i> View Reports
+                    </button>
+                    <button class="btn btn-secondary" onclick="systemSettings()">
+                        <i class="fas fa-cog"></i> System Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Health -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-heartbeat"></i> System Health
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Database</span>
+                        <span class="badge bg-success" id="db-status">Online</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Discord Bot</span>
+                        <span class="badge bg-success" id="bot-status">Connected</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Background Jobs</span>
+                        <span class="badge bg-success" id="jobs-status">Running</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Image Storage</span>
+                        <span class="badge bg-success" id="storage-status">Available</span>
+                    </div>
+                </div>
+                <hr>
+                <div class="text-center">
+                    <small class="text-muted">
+                        Last updated: <span id="health-check-time">-</span>
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Users -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-trophy"></i> Top Collectors
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="leaderboard-container">
+                    <div class="text-center">
+                        <div class="spinner-border spinner-border-sm" role="status"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals -->
+<!-- Card Approval Modal -->
+<div class="modal fade" id="cardApprovalModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Review Card Submission</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="card-review-body">
+                <!-- Card details loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" onclick="rejectCard()">
+                    <i class="fas fa-times"></i> Reject
+                </button>
+                <button type="button" class="btn btn-success" onclick="approveCard()">
+                    <i class="fas fa-check"></i> Approve
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let currentCardForReview = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadDashboardData();
+    loadSystemHealth();
+    
+    // Refresh data every 30 seconds
+    setInterval(loadDashboardData, 30000);
+    setInterval(loadSystemHealth, 60000);
+});
+
+async function loadDashboardData() {
+    try {
+        // Load all dashboard data in parallel
+        await Promise.all([
+            loadStats(),
+            loadPendingCards(),
+            loadAuditLogs(),
+            loadLeaderboard(),
+            loadChartData()
+        ]);
+    } catch (error) {
+        console.error('Failed to load dashboard data:', error);
+    }
+}
+
+async function loadStats() {
+    try {
+        const response = await fetch('/api/v1/admin/stats', {
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+            }
+        });
+        
+        if (response.ok) {
+            const stats = await response.json();
+            document.getElementById('total-cards').textContent = stats.total_cards || 0;
+            document.getElementById('total-users').textContent = stats.total_users || 0;
+            document.getElementById('total-instances').textContent = stats.total_instances || 0;
+            
+            // Calculate pending cards from separate endpoint
+            const pendingResponse = await fetch('/api/v1/cards?status=submitted&limit=1');
+            const pendingData = await pendingResponse.json();
+            document.getElementById('pending-cards').textContent = pendingData.total || 0;
+        }
+    } catch (error) {
+        console.error('Failed to load stats:', error);
+    }
+}
+
+async function loadPendingCards() {
+    try {
+        const response = await fetch('/api/v1/cards?status=submitted&limit=10', {
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+            }
+        });
+        
+        const data = await response.json();
+        const container = document.getElementById('pending-cards-container');
+        
+        if (data.items && data.items.length > 0) {
+            container.innerHTML = data.items.map(card => `
+                <div class="pending-card" onclick="reviewCard('${card.id}')">
+                    <div class="row align-items-center">
+                        <div class="col-md-2">
+                            <img src="${card.thumb_url || '/static/images/placeholder-card.jpg'}" 
+                                 alt="${card.name}" class="img-fluid rounded">
+                        </div>
+                        <div class="col-md-8">
+                            <h6 class="mb-1">${card.name}</h6>
+                            <p class="mb-1 text-muted">${card.description || 'No description'}</p>
+                            <small class="text-muted">
+                                <i class="fas fa-user"></i> Creator: <@${card.created_by_user_id}> •
+                                <i class="fas fa-calendar"></i> ${new Date(card.created_at).toLocaleDateString()}
+                            </small>
+                        </div>
+                        <div class="col-md-2 text-end">
+                            <span class="badge rarity-${card.rarity}">${card.rarity}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<p class="text-muted text-center">No pending cards</p>';
+        }
+    } catch (error) {
+        console.error('Failed to load pending cards:', error);
+        document.getElementById('pending-cards-container').innerHTML = 
+            '<div class="alert alert-danger">Failed to load pending cards</div>';
+    }
+}
+
+async function loadAuditLogs() {
+    try {
+        const response = await fetch('/api/v1/admin/audit-logs?limit=20', {
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+            }
+        });
+        
+        const data = await response.json();
+        const container = document.getElementById('audit-logs-container');
+        
+        if (data.items && data.items.length > 0) {
+            container.innerHTML = data.items.map(log => {
+                const logClass = getLogClass(log.action);
+                const icon = getLogIcon(log.action);
+                
+                return `
+                    <div class="audit-log-entry ${logClass}">
+                        <div class="d-flex align-items-center">
+                            <i class="${icon} me-2"></i>
+                            <div class="flex-grow-1">
+                                <strong>${log.action.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    by <@${log.actor_user_id}> • ${new Date(log.created_at).toLocaleString()}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            container.innerHTML = '<p class="text-muted text-center">No recent activity</p>';
+        }
+    } catch (error) {
+        console.error('Failed to load audit logs:', error);
+        document.getElementById('audit-logs-container').innerHTML = 
+            '<div class="alert alert-danger">Failed to load activity logs</div>';
+    }
+}
+
+async function loadLeaderboard() {
+    try {
+        const response = await fetch('/api/v1/leaderboard?limit=5');
+        const data = await response.json();
+        const container = document.getElementById('leaderboard-container');
+        
+        if (data.leaderboard && data.leaderboard.length > 0) {
+            container.innerHTML = data.leaderboard.map((entry, index) => `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <span class="badge bg-${index < 3 ? 'warning' : 'secondary'} me-2">
+                            ${index + 1}
+                        </span>
+                        <@${entry.user_id}>
+                    </div>
+                    <span class="text-muted">${entry.card_count} cards</span>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<p class="text-muted text-center">No data available</p>';
+        }
+    } catch (error) {
+        console.error('Failed to load leaderboard:', error);
+    }
+}
+
+async function loadChartData() {
+    // Mock chart data for now
+    // In a real implementation, you'd fetch this from your API
+    
+    // Rarity Distribution Chart
+    const rarityCtx = document.getElementById('rarityChart').getContext('2d');
+    new Chart(rarityCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary'],
+            datasets: [{
+                data: [45, 30, 15, 8, 2],
+                backgroundColor: ['#95a5a6', '#2ecc71', '#3498db', '#9b59b6', '#f39c12']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Activity Chart
+    const activityCtx = document.getElementById('activityChart').getContext('2d');
+    new Chart(activityCtx, {
+        type: 'line',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Cards Created',
+                data: [12, 19, 3, 5, 2, 3, 9],
+                borderColor: '#3498db',
+                tension: 0.4
+            }, {
+                label: 'Cards Assigned',
+                data: [15, 25, 8, 12, 7, 8, 14],
+                borderColor: '#2ecc71',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+async function loadSystemHealth() {
+    try {
+        const response = await fetch('/api/health');
+        
+        if (response.ok) {
+            document.getElementById('db-status').textContent = 'Online';
+            document.getElementById('db-status').className = 'badge bg-success';
+        } else {
+            document.getElementById('db-status').textContent = 'Issues';
+            document.getElementById('db-status').className = 'badge bg-warning';
+        }
+        
+        document.getElementById('health-check-time').textContent = new Date().toLocaleTimeString();
+    } catch (error) {
+        document.getElementById('db-status').textContent = 'Offline';
+        document.getElementById('db-status').className = 'badge bg-danger';
+    }
+}
+
+function getLogClass(action) {
+    if (action.includes('rejected') || action.includes('removed')) return 'critical';
+    if (action.includes('warning') || action.includes('expired')) return 'warning';
+    if (action.includes('approved') || action.includes('created')) return 'info';
+    return '';
+}
+
+function getLogIcon(action) {
+    if (action.includes('created')) return 'fas fa-plus-circle text-success';
+    if (action.includes('approved')) return 'fas fa-check-circle text-success';
+    if (action.includes('rejected')) return 'fas fa-times-circle text-danger';
+    if (action.includes('assigned')) return 'fas fa-arrow-right text-info';
+    if (action.includes('removed')) return 'fas fa-trash text-danger';
+    return 'fas fa-info-circle text-muted';
+}
+
+async function reviewCard(cardId) {
+    const modal = new bootstrap.Modal(document.getElementById('cardApprovalModal'));
+    const modalBody = document.getElementById('card-review-body');
+    
+    currentCardForReview = cardId;
+    
+    modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+    modal.show();
+    
+    try {
+        const response = await fetch(`/api/v1/cards/${cardId}`, {
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+            }
+        });
+        
+        const card = await response.json();
+        
+        modalBody.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <img src="${card.image_url || card.thumb_url || '/static/images/placeholder-card.jpg'}" 
+                         alt="${card.name}" class="img-fluid rounded">
+                </div>
+                <div class="col-md-6">
+                    <h4>${card.name}</h4>
+                    <p class="text-muted">${card.description || 'No description provided.'}</p>
+                    
+                    <div class="mb-2">
+                        <strong>Rarity:</strong> 
+                        <span class="badge rarity-${card.rarity}">${card.rarity}</span>
+                    </div>
+                    
+                    <div class="mb-2">
+                        <strong>Submitted by:</strong> <@${card.created_by_user_id}>
+                    </div>
+                    
+                    <div class="mb-2">
+                        <strong>Submitted:</strong> ${new Date(card.created_at).toLocaleString()}
+                    </div>
+                    
+                    ${card.max_supply ? `<div class="mb-2"><strong>Max Supply:</strong> ${card.max_supply}</div>` : ''}
+                    
+                    ${card.tags && card.tags.length > 0 ? `
+                    <div class="mb-2">
+                        <strong>Tags:</strong><br>
+                        ${card.tags.map(tag => `<span class="badge bg-light text-dark me-1">${tag}</span>`).join('')}
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        modalBody.innerHTML = '<div class="alert alert-danger">Failed to load card details</div>';
+    }
+}
+
+async function approveCard() {
+    if (!currentCardForReview) return;
+    
+    try {
+        const response = await fetch(`/api/v1/cards/${currentCardForReview}/approve`, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+            }
+        });
+        
+        if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('cardApprovalModal')).hide();
+            showNotification('Card approved successfully!', 'success');
+            loadPendingCards(); // Refresh pending cards
+            loadStats(); // Refresh stats
+        } else {
+            showNotification('Failed to approve card', 'danger');
+        }
+    } catch (error) {
+        showNotification('Error approving card', 'danger');
+    }
+}
+
+async function rejectCard() {
+    if (!currentCardForReview) return;
+    
+    const reason = prompt('Rejection reason (optional):');
+    
+    try {
+        const response = await fetch(`/api/v1/cards/${currentCardForReview}/reject?reason=${encodeURIComponent(reason || '')}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+            }
+        });
+        
+        if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('cardApprovalModal')).hide();
+            showNotification('Card rejected', 'warning');
+            loadPendingCards(); // Refresh pending cards
+            loadStats(); // Refresh stats
+        } else {
+            showNotification('Failed to reject card', 'danger');
+        }
+    } catch (error) {
+        showNotification('Error rejecting card', 'danger');
+    }
+}
+
+function bulkApproveCards() {
+    if (confirm('Are you sure you want to approve all pending cards?')) {
+        // Implementation would go here
+        showNotification('Bulk approval functionality coming soon!', 'info');
+    }
+}
+
+function createCard() {
+    alert('Card creation form coming soon!');
+}
+
+function manageUsers() {
+    alert('User management interface coming soon!');
+}
+
+function viewReports() {
+    alert('Detailed reports coming soon!');
+}
+
+function systemSettings() {
+    alert('System settings coming soon!');
+}
+
+function exportData() {
+    alert('Data export functionality coming soon!');
+}
+
+function cleanupExpired() {
+    if (confirm('Are you sure you want to clean up all expired card instances?')) {
+        alert('Cleanup functionality coming soon!');
+    }
+}
+
+function showNotification(message, type = 'info') {
+    // Simple notification system - in production you'd use a proper toast library
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.getElementById('alerts-container').appendChild(alertDiv);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}
