@@ -55,6 +55,34 @@ class DatabaseManager:
         self.is_mongodb = is_mongodb()
         self.config = get_database_config()
     
+    async def _initialize_sql_tables(self) -> None:
+        """Initialize SQL database tables."""
+        try:
+            if not self.is_mongodb:
+                # Import SQL models and base to ensure they're registered
+                from .base import engine
+                from .models import (
+                    Base, Card, CardInstance, User, GuildConfig, AuditLog, CardSubmission
+                )
+                
+                # Create all tables
+                Base.metadata.create_all(bind=engine)
+                logger.info("SQL database tables created successfully")
+                
+                # Verify tables were created
+                from sqlalchemy import inspect
+                inspector = inspect(engine)
+                tables = inspector.get_table_names()
+                logger.info(f"Available tables: {tables}")
+                
+                if not tables:
+                    logger.warning("No tables were created - this may indicate a model import issue")
+                else:
+                    logger.info(f"✅ SQL database initialized with {len(tables)} tables")
+        except Exception as e:
+            logger.error(f"Failed to initialize SQL tables: {e}")
+            raise
+    
     async def initialize(self) -> None:
         """Initialize the database connection."""
         if self.is_mongodb:
@@ -86,8 +114,9 @@ class DatabaseManager:
                 
                 raise Exception(f"MongoDB initialization failed: {e}. Cannot start application.")
         else:
-            # SQL database initialization is handled in base.py
+            # SQL database initialization - create tables if they don't exist
             logger.info("Using SQL database connection")
+            await self._initialize_sql_tables()
     
     async def close(self) -> None:
         """Close database connections."""
