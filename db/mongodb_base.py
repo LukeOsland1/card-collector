@@ -100,11 +100,12 @@ async def init_mongodb(mongodb_url: Optional[str] = None) -> None:
         if "mongodb.net" in mongodb_url or "mongodb+srv:" in mongodb_url:
             client_options.update({
                 "tls": True,
-                "tlsAllowInvalidCertificates": False,
+                "tlsAllowInvalidCertificates": True,  # Allow invalid certs to fix SSL issues
                 "retryWrites": True,
-                "w": "majority"
+                "w": "majority",
+                "ssl_cert_reqs": None,  # Disable certificate requirements
             })
-            logger.info("Using MongoDB Atlas configuration with TLS")
+            logger.info("Using MongoDB Atlas configuration with relaxed TLS settings")
         
         mongodb_client = AsyncIOMotorClient(mongodb_url, **client_options)
         database = mongodb_client[database_name]

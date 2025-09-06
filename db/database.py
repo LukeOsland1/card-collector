@@ -64,10 +64,26 @@ class DatabaseManager:
                 logger.info("Initialized MongoDB connection")
             except Exception as e:
                 logger.error(f"Failed to initialize MongoDB: {e}")
-                logger.error("MongoDB initialization failed - cannot continue with MongoDB configuration")
-                logger.error("Please either:")
-                logger.error("1. Fix your MongoDB connection (check MONGODB_URL environment variable)")
-                logger.error("2. Set DATABASE_TYPE=sqlite to use SQLite instead")
+                
+                # Check if it's an SSL-related error
+                error_str = str(e).lower()
+                if "ssl" in error_str or "tls" in error_str:
+                    logger.error("🔥 MongoDB Atlas SSL/TLS Error Detected!")
+                    logger.error("This is a common issue with MongoDB Atlas on some hosting platforms.")
+                    logger.error("")
+                    logger.error("💡 RECOMMENDED SOLUTION:")
+                    logger.error("Set DATABASE_TYPE=sqlite in your Render environment variables")
+                    logger.error("SQLite will work perfectly for your Card Collector app!")
+                    logger.error("")
+                    logger.error("Alternative solutions:")
+                    logger.error("1. Try a different MongoDB hosting service")
+                    logger.error("2. Use MongoDB Atlas with relaxed SSL settings (less secure)")
+                else:
+                    logger.error("MongoDB initialization failed - cannot continue with MongoDB configuration")
+                    logger.error("Please either:")
+                    logger.error("1. Fix your MongoDB connection (check MONGODB_URL environment variable)")
+                    logger.error("2. Set DATABASE_TYPE=sqlite to use SQLite instead")
+                
                 raise Exception(f"MongoDB initialization failed: {e}. Cannot start application.")
         else:
             # SQL database initialization is handled in base.py
