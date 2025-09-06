@@ -20,15 +20,64 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def check_dependencies():
+    """Check if required dependencies are installed."""
+    missing_deps = []
+    
+    try:
+        import dotenv
+    except ImportError:
+        missing_deps.append("python-dotenv")
+    
+    try:
+        import discord
+    except ImportError:
+        missing_deps.append("discord.py")
+    
+    try:
+        import fastapi
+    except ImportError:
+        missing_deps.append("fastapi")
+    
+    try:
+        import uvicorn
+    except ImportError:
+        missing_deps.append("uvicorn")
+    
+    if missing_deps:
+        logger.error("Missing required dependencies:")
+        for dep in missing_deps:
+            logger.error(f"  - {dep}")
+        logger.error("\nPlease install dependencies:")
+        logger.error("  python install_deps.py")
+        logger.error("\nOr manually:")
+        logger.error("  pip install -r requirements.txt")
+        return False
+    
+    return True
+
+
 async def quick_start():
     """Quick start for development."""
-    from dotenv import load_dotenv
-    load_dotenv()
+    # Check dependencies first
+    if not check_dependencies():
+        return
+    
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except Exception as e:
+        logger.error(f"Failed to load .env file: {e}")
+        logger.info("Continuing without .env file...")
     
     # Check essential environment variables
-    if not os.getenv('DISCORD_BOT_TOKEN'):
+    bot_token = os.getenv('DISCORD_BOT_TOKEN')
+    if not bot_token:
         logger.error("DISCORD_BOT_TOKEN not found in environment")
-        logger.info("Please set your Discord bot token in .env file")
+        logger.info("Please:")
+        logger.info("1. Create a .env file (copy from env.example)")
+        logger.info("2. Set DISCORD_BOT_TOKEN=your_actual_bot_token")
+        logger.info("3. Get your bot token from: https://discord.com/developers/applications")
         return
     
     logger.info("Starting Card Collector in development mode...")
@@ -51,7 +100,7 @@ async def quick_start():
     try:
         from bot.main import CardBot
         bot = CardBot()
-        bot_task = asyncio.create_task(bot.start(os.getenv('DISCORD_BOT_TOKEN')))
+        bot_task = asyncio.create_task(bot.start(bot_token))
         tasks.append(bot_task)
         logger.info("Discord bot starting...")
     except Exception as e:
