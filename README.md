@@ -1,157 +1,235 @@
-# Card Collector Discord Bot
+# 🎴 Card Collector - Discord Bot & Web Platform
 
-A comprehensive Discord bot for managing collectible cards with a web interface. Features card creation, assignment, expiry tracking, and user collections with Discord OAuth2 integration.
+A comprehensive, production-ready Discord bot and web application for managing collectible card communities. Create, trade, and collect digital cards with your friends!
 
-## Features
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python)](https://python.org)
+[![Discord.py](https://img.shields.io/badge/Discord.py-2.3%2B-7289da?logo=discord)](https://discordpy.readthedocs.io/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104%2B-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-### Discord Bot
+## ✨ **Key Features**
+
+### 🤖 **Discord Bot**
+- **Slash Commands**: Modern Discord slash command interface
 - **Card Management**: Create, submit, approve/reject cards with moderation workflow
 - **Card Assignment**: Assign cards to users with optional expiry dates
-- **User Collections**: Users can view their cards, filter by status, rarity, and tags
-- **Expiry System**: Automatic expiry handling with user notifications
+- **User Collections**: Filter by rarity, tags, and status
 - **Permission System**: Role-based permissions for admins and moderators
 - **Rich Embeds**: Beautiful card displays with pagination
+- **Expiry System**: Automatic handling with notifications
 
-### Web Interface
-- **My Cards Page**: Web dashboard to view card collections
+### 🌐 **Web Interface**
+- **Modern UI**: Responsive design with Bootstrap 5
 - **Discord OAuth2**: Secure login with Discord account
-- **Search & Filter**: Find cards by name, rarity, tags, and status
-- **Responsive Design**: Works on desktop and mobile devices
+- **Admin Dashboard**: Statistics, user management, system health
+- **Card Browser**: Search, filter, and discover cards
+- **Collection Manager**: View and organize your cards
+- **API Documentation**: Interactive OpenAPI/Swagger docs
 
-### Technical Features
-- **Production Ready**: Docker containers, PostgreSQL support
+### ⚡ **Technical Features**
+- **Production Ready**: Docker support, PostgreSQL compatibility
 - **Database Migrations**: Alembic for schema management
-- **Background Jobs**: APScheduler for expiry processing
-- **Comprehensive API**: RESTful API with FastAPI
-- **Testing**: Unit tests with pytest
-- **Security**: JWT tokens, input validation, SQL injection protection
+- **Background Jobs**: APScheduler for automated tasks
+- **Image Processing**: Automatic thumbnails and card previews
+- **Comprehensive API**: RESTful API with authentication
+- **Security**: JWT tokens, input validation, audit logging
 
-## Quick Start (Development)
+## 🚀 **Quick Start**
 
-### Prerequisites
-- Python 3.11+
-- Discord application with bot token
-- PostgreSQL (for production) or SQLite (for development)
+### **🪟 Windows Users (Easiest)**
 
-### 1. Clone and Setup
+1. **Download** the project from GitHub
+2. **Double-click** `install.bat` 
+3. **Follow the prompts** to enter your Discord bot token
+4. **Done!** 🎉
+
+> **Detailed Windows Guide**: See [WINDOWS_SETUP.md](WINDOWS_SETUP.md)
+
+### **🐧 Linux/Mac Users**
+
 ```bash
+# 1. Clone repository
 git clone https://github.com/LukeOsland1/card-collector.git
 cd card-collector
-cp .env.example .env
+
+# 2. Quick development setup
+python run.py
+# OR full production setup
+python start.py
 ```
 
-### 2. Configure Environment
-Edit `.env` with your Discord application settings:
-```env
-DISCORD_BOT_TOKEN=your_bot_token_here
-DISCORD_CLIENT_ID=your_client_id_here
-DISCORD_CLIENT_SECRET=your_client_secret_here
-OAUTH_REDIRECT_URI=http://localhost:8080/oauth/callback
-JWT_SECRET=your-secure-random-string-here
-```
+### **🐳 Docker (Production)**
 
-### 3. Run Development Environment
 ```bash
-# Using the development script
-chmod +x scripts/run_dev.sh
-./scripts/run_dev.sh
+# 1. Setup environment
+cp env.example .env
+# Edit .env with your Discord bot token
 
-# Or manually
-python -m venv .venv
-source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-pip install -r requirements.txt
-# alembic upgrade head  # (when migrations are available)
-# python db/seeds.py    # Optional: add sample data
-python -m web.app &     # Start web server
-python -m bot.main      # Start Discord bot
+# 2. Start with Docker Compose
+docker-compose up -d
+
+# 3. Access services
+# Web: http://localhost:8080
+# API Docs: http://localhost:8080/docs
 ```
 
-### 4. Access Services
-- **Web Interface**: http://localhost:8080
-- **Bot**: Invite to your Discord server using Discord Developer Portal
+## 📋 **Prerequisites**
 
-## Production Deployment (Docker)
+- **Python 3.9+** ([Download Python](https://python.org))
+- **Discord Bot Token** ([Discord Developer Portal](https://discord.com/developers/applications))
+- **PostgreSQL** (production) or **SQLite** (development)
 
-### 1. Setup Environment
-```bash
-cp .env.example .env
-# Configure production values in .env
-```
+## ⚙️ **Configuration**
 
-### 2. Start with Docker Compose
-```bash
-# Start all services
-docker-compose up --build -d
+### **Getting Your Discord Bot Token**
 
-# Run migrations
-docker-compose exec bot alembic upgrade head
-
-# Optional: Add sample data
-docker-compose exec bot python db/seeds.py
-```
-
-### 3. Access Services
-- **Web Interface**: http://localhost:8080
-- **Database Admin**: http://localhost:8081 (Adminer, optional)
-- **Database**: localhost:5432
-
-## Discord Bot Setup
-
-### 1. Create Discord Application
 1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
-2. Create a new application
-3. Go to "Bot" section and create a bot
-4. Copy the bot token to your `.env` file
-5. Enable required intents (Message Content Intent if needed)
+2. Create a **New Application**
+3. Go to **"Bot"** section → Create bot
+4. Copy the **bot token**
+5. Edit `.env` file: `DISCORD_BOT_TOKEN=your_token_here`
 
-### 2. Setup OAuth2
-1. Go to "OAuth2" → "General" section
-2. Add redirect URI: `http://localhost:8080/oauth/callback` (or your domain)
-3. Copy Client ID and Client Secret to your `.env` file
+### **Bot Permissions Required**
+- ✅ Send Messages
+- ✅ Use Slash Commands
+- ✅ Embed Links
+- ✅ Attach Files
+- ✅ Read Message History
 
-### 3. Invite Bot to Server
-1. Go to "OAuth2" → "URL Generator"
-2. Select scopes: `bot`, `applications.commands`
-3. Select bot permissions: `Send Messages`, `Use Slash Commands`, `Embed Links`
-4. Use generated URL to invite bot to your server
+### **Environment Variables**
+```env
+# Required
+DISCORD_BOT_TOKEN=your_bot_token_here
+JWT_SECRET_KEY=your-super-secret-key
 
-## Slash Commands Reference
+# Optional (for web login)
+DISCORD_CLIENT_ID=your_client_id
+DISCORD_CLIENT_SECRET=your_client_secret
 
-### User Commands
-- `/card my [active_only] [search] [rarity] [tag]` - View your card collection
-- `/card info <card_id|instance_id>` - Get detailed card information
-
-### Moderator Commands
-- `/card create <name> <rarity> <image> [description] [tags] [max_supply]` - Create and approve a card
-- `/card approve <card_id>` - Approve a submitted card
-- `/card reject <card_id> [reason]` - Reject a submitted card
-- `/card assign <card_id> <@user> [expires_in_minutes] [note]` - Assign card to user
-- `/card remove <instance_id>` - Remove a card instance
-
-### User Submission
-- `/card submit <name> <rarity> <image> [description] [tags]` - Submit card for review
-
-## API Reference
-
-### Authentication
-Most user endpoints require a Bearer token obtained through Discord OAuth2:
-```http
-Authorization: Bearer <jwt_token>
+# Database (SQLite default)
+DATABASE_URL=sqlite+aiosqlite:///./card_collector.db
 ```
 
-### Key Endpoints
-- `GET /api/health` - Health check
-- `GET /api/cards` - List approved cards
-- `GET /api/cards/{id}` - Get specific card
-- `GET /api/users/@me/cards` - Get user's cards (auth required)
-- `GET /api/instances/{id}` - Get card instance details (auth required)
+## 🎮 **Discord Commands**
 
-## Development
+### **👤 User Commands**
+| Command | Description |
+|---------|-------------|
+| `/card my` | View your card collection |
+| `/card submit` | Submit a card for review |
+| `/card info <id>` | Get card/instance information |
 
-### Running Tests
+### **🛡️ Moderator Commands**
+| Command | Description |
+|---------|-------------|
+| `/card create` | Create and approve a card instantly |
+| `/card assign <card> <user>` | Assign cards to users |
+| `/card approve <id>` | Approve submitted cards |
+| `/card reject <id>` | Reject submitted cards |
+| `/card queue` | View pending approvals |
+
+### **👑 Admin Commands**
+| Command | Description |
+|---------|-------------|
+| `/admin setup` | Configure server permissions |
+| `/admin stats` | View server statistics |
+| `/admin audit` | View recent actions |
+
+## 🌐 **Web Interface**
+
+Once running, access these services:
+
+- **🏠 Home Page**: http://localhost:8080
+- **🎴 Browse Cards**: http://localhost:8080/cards
+- **📁 My Collection**: http://localhost:8080/collection
+- **⚙️ Admin Dashboard**: http://localhost:8080/admin
+- **📚 API Docs**: http://localhost:8080/docs
+
+## 🎯 **Card Rarity System**
+
+| Rarity | Color | Description |
+|--------|-------|-------------|
+| **Common** | Gray | Basic cards, easy to obtain |
+| **Uncommon** | Green | Slightly rare cards |
+| **Rare** | Blue | Moderately difficult to obtain |
+| **Epic** | Purple | Hard to find cards |
+| **Legendary** | Gold | Extremely rare, prestigious cards |
+
+## 🔧 **Deployment Options**
+
+### **🪟 Windows (Recommended for Beginners)**
+- **One-click installer**: `install.bat`
+- **Production server**: `start.bat`
+- **Development mode**: `dev.bat`
+- **Configuration helper**: `config.bat`
+
+### **🐧 Linux/Mac (Manual)**
+```bash
+# Setup virtual environment
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# venv\Scripts\activate   # Windows
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Initialize database
+python scripts/init_db.py
+
+# Start application
+python start.py  # Production
+python run.py    # Development
+```
+
+### **🐳 Docker (Production)**
+```bash
+# Development
+docker-compose -f docker-compose.dev.yml up
+
+# Production
+docker-compose up -d
+
+# Raspberry Pi
+docker-compose -f docker-compose.pi.yml up -d
+```
+
+## 📁 **Project Structure**
+
+```
+card-collector/
+├── 🤖 bot/                    # Discord bot implementation
+│   ├── commands.py            # Slash commands
+│   ├── embeds.py              # Rich Discord embeds
+│   ├── permissions.py         # Permission system
+│   └── main.py                # Bot entry point
+├── 🌐 web/                    # Web application
+│   ├── app.py                 # FastAPI application
+│   ├── api.py                 # REST API endpoints
+│   ├── auth.py                # OAuth2 authentication
+│   ├── templates/             # HTML templates
+│   └── static/                # CSS/JS assets
+├── 🗄️ db/                     # Database layer
+│   ├── models.py              # SQLAlchemy models
+│   ├── crud.py                # Database operations
+│   └── migrations/            # Alembic migrations
+├── ⚙️ services/               # Background services
+│   ├── scheduler.py           # Job scheduler
+│   └── image_service.py       # Image processing
+├── 🪟 Windows Deployment      # Easy Windows deployment
+│   ├── install.bat            # One-click installer
+│   ├── start.bat              # Production server
+│   ├── dev.bat                # Development server
+│   └── config.bat             # Configuration helper
+├── 🐳 docker-compose.yml      # Docker orchestration
+└── 📚 Documentation           # Setup guides and docs
+```
+
+## 🛠️ **Development**
+
+### **Running Tests**
 ```bash
 # Install dev dependencies
-pip install -r requirements-dev.txt
+pip install pytest pytest-asyncio pytest-cov
 
 # Run tests
 pytest
@@ -160,38 +238,110 @@ pytest
 pytest --cov=. --cov-report=html
 ```
 
-### Project Structure
-```
-card-collector/
-├── bot/                    # Discord bot code
-│   ├── commands.py         # Slash commands
-│   ├── embeds.py          # Message embeds
-│   ├── permissions.py     # Permission checking
-│   ├── scheduler.py       # Background jobs
-│   └── main.py            # Bot entry point
-├── web/                   # Web application
-│   ├── app.py             # FastAPI application
-│   ├── auth.py            # OAuth2 authentication
-│   ├── routers/           # API routes
-│   ├── templates/         # HTML templates
-│   └── static/            # CSS/JS assets
-├── db/                    # Database layer
-│   ├── models.py          # SQLAlchemy models
-│   ├── crud.py            # Database operations
-│   ├── migrations/        # Alembic migrations
-│   └── seeds.py           # Sample data
-├── tests/                 # Test suite
-├── scripts/               # Utility scripts
-└── docker-compose.yml     # Docker orchestration
+### **Database Migrations**
+```bash
+# Create migration
+alembic revision --autogenerate -m "Description"
+
+# Apply migrations
+alembic upgrade head
+
+# Reset database (development)
+rm card_collector.db
+python scripts/init_db.py
 ```
 
-## License
+## 📊 **API Reference**
 
-MIT License. See `LICENSE` file for details.
+### **Authentication**
+```http
+# Login via Discord OAuth
+GET /login
 
-## Acknowledgments
+# API authentication
+Authorization: Bearer <jwt_token>
+```
 
-- Built with [discord.py](https://discordpy.readthedocs.io/) for Discord integration
-- [FastAPI](https://fastapi.tiangolo.com/) for the web API
-- [SQLAlchemy](https://www.sqlalchemy.org/) for database ORM
-- [APScheduler](https://apscheduler.readthedocs.io/) for background jobs
+### **Key Endpoints**
+- `GET /api/v1/cards` - Browse all cards
+- `GET /api/v1/cards/{id}` - Get specific card
+- `GET /api/v1/instances` - Get user's collection
+- `GET /api/v1/leaderboard` - Top collectors
+- `GET /api/v1/admin/stats` - System statistics
+
+> **Full API Documentation**: http://localhost:8080/docs
+
+## 🔒 **Security Features**
+
+- **🔐 JWT Authentication**: Secure token-based auth
+- **🛡️ Input Validation**: Pydantic models and sanitization  
+- **🔍 Audit Logging**: Track all system actions
+- **👥 Role-Based Permissions**: Granular access control
+- **🚫 Rate Limiting**: Prevent abuse and spam
+- **📝 SQL Injection Protection**: Parameterized queries
+
+## 🚀 **Production Deployment**
+
+### **Environment Setup**
+```bash
+# Production environment variables
+DATABASE_URL=postgresql+asyncpg://user:pass@localhost/cardcollector
+WEB_HOST=0.0.0.0
+WEB_PORT=8080
+JWT_SECRET_KEY=your-production-secret-key
+```
+
+### **Performance Recommendations**
+- **Database**: PostgreSQL for production
+- **Web Server**: Run behind nginx/Apache proxy
+- **Background Jobs**: Enable APScheduler
+- **Image Storage**: Configure CDN for images
+- **Monitoring**: Set up logging and health checks
+
+## 🤝 **Contributing**
+
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
+
+## 📝 **Changelog**
+
+### **v2.0.0** (Latest)
+- ✅ Complete Discord bot with slash commands
+- ✅ Full web interface with authentication
+- ✅ Windows one-click deployment system
+- ✅ Image processing and thumbnails
+- ✅ Background job scheduler
+- ✅ Admin dashboard and analytics
+
+### **v1.0.0**
+- ✅ Basic Discord bot functionality
+- ✅ Database models and migrations
+- ✅ Docker deployment
+
+## 📄 **License**
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 **Acknowledgments**
+
+- **[Discord.py](https://discordpy.readthedocs.io/)** - Discord API wrapper
+- **[FastAPI](https://fastapi.tiangolo.com/)** - Modern web framework
+- **[SQLAlchemy](https://www.sqlalchemy.org/)** - Database ORM
+- **[Bootstrap](https://getbootstrap.com/)** - UI framework
+- **[APScheduler](https://apscheduler.readthedocs.io/)** - Background jobs
+
+## 📞 **Support & Help**
+
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/LukeOsland1/card-collector/issues)
+- **💡 Feature Requests**: [GitHub Discussions](https://github.com/LukeOsland1/card-collector/discussions)
+- **📖 Documentation**: Check the wiki and setup guides
+- **💬 Community**: Join our Discord server (coming soon!)
+
+---
+
+**Made with ❤️ for Discord communities worldwide**
+
+🤖 **Generated with [Claude Code](https://claude.ai/code)**
