@@ -36,26 +36,41 @@ A comprehensive, production-ready Discord bot and web application for managing c
 
 ## 🚀 **Quick Start**
 
-### **🪟 Windows Users (Easiest)**
+### **🪟 Windows Users (Recommended)**
 
-1. **Download** the project from GitHub
-2. **Double-click** `install.bat` 
-3. **Follow the prompts** to enter your Discord bot token
-4. **Done!** 🎉
+1. **Download & Extract** the project from [GitHub](https://github.com/LukeOsland1/card-collector/archive/refs/heads/master.zip)
+2. **Open Command Prompt** in the project folder
+3. **Install dependencies**: `python install_deps.py`
+4. **Setup configuration**: `copy env.example .env` and edit with your Discord bot token
+5. **Run the application**: `python start.bat` or `python run.py`
 
-> **Detailed Windows Guide**: See [WINDOWS_SETUP.md](WINDOWS_SETUP.md)
+> **Alternative**: Use the batch files for one-click setup - `setup.bat`, then `start.bat`
 
 ### **🐧 Linux/Mac Users**
 
 ```bash
-# 1. Clone repository
+# 1. Clone and enter repository
 git clone https://github.com/LukeOsland1/card-collector.git
 cd card-collector
 
-# 2. Quick development setup
-python run.py
-# OR full production setup
-python start.py
+# 2. Install dependencies (automatic)
+python3 install_deps.py
+
+# 3. Setup configuration
+cp env.example .env
+# Edit .env with your Discord bot token
+
+# 4. Run the application
+python3 run.py        # Quick development start
+# OR
+python3 start.py      # Full production features
+```
+
+### **⚡ One-Command Install (All Platforms)**
+
+```bash
+# Clone, install dependencies, and setup in one go
+git clone https://github.com/LukeOsland1/card-collector.git && cd card-collector && python install_deps.py
 ```
 
 ### **🐳 Docker (Production)**
@@ -79,15 +94,91 @@ docker-compose up -d
 - **Discord Bot Token** ([Discord Developer Portal](https://discord.com/developers/applications))
 - **PostgreSQL** (production) or **SQLite** (development)
 
+## 🛠️ **Installation Troubleshooting**
+
+### **Common Issues & Solutions**
+
+#### **"ModuleNotFoundError: No module named 'dotenv'"**
+```bash
+# Solution: Install dependencies
+python install_deps.py
+# OR manually:
+pip install -r requirements.txt
+```
+
+#### **"DISCORD_BOT_TOKEN not found in environment"**
+```bash
+# Solution: Setup configuration file
+cp env.example .env    # Linux/Mac
+copy env.example .env  # Windows
+# Then edit .env with your Discord bot token
+```
+
+#### **"UnicodeEncodeError" on Windows**
+- **Fixed in latest version** - Windows console encoding issues resolved
+- Update to latest version or run: `git pull origin master`
+
+#### **Port 8080 already in use**
+```bash
+# Solution: Change port in .env file
+WEB_PORT=8081
+# OR kill existing process
+netstat -ano | findstr :8080  # Windows
+lsof -ti:8080 | xargs kill    # Linux/Mac
+```
+
+#### **Python command not found**
+- **Windows**: Reinstall Python with "Add to PATH" checked
+- **Linux/Mac**: Install Python 3.9+ or use `python3` instead of `python`
+- **Verify**: `python --version` should show 3.9+
+
+### **Manual Installation (If install_deps.py fails)**
+```bash
+# Upgrade pip first
+python -m pip install --upgrade pip
+
+# Install requirements
+pip install -r requirements.txt
+
+# Verify installation
+python -c "import discord, fastapi, uvicorn; print('Dependencies OK!')"
+```
+
 ## ⚙️ **Configuration**
 
-### **Getting Your Discord Bot Token**
+### **Step-by-Step Configuration**
 
+#### **1. Create Configuration File**
+```bash
+# Copy the example configuration
+cp env.example .env    # Linux/Mac
+copy env.example .env  # Windows
+```
+
+#### **2. Get Your Discord Bot Token**
 1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
-2. Create a **New Application**
-3. Go to **"Bot"** section → Create bot
-4. Copy the **bot token**
-5. Edit `.env` file: `DISCORD_BOT_TOKEN=your_token_here`
+2. Click **"New Application"** → Enter a name (e.g., "My Card Collector")
+3. Go to **"Bot"** section in the left sidebar
+4. Click **"Add Bot"** (if not already created)
+5. Under **"Token"**, click **"Copy"** to get your bot token
+6. Open `.env` file and replace: `DISCORD_BOT_TOKEN=your_actual_bot_token_here`
+
+#### **3. Configure Required Settings**
+Edit your `.env` file with these **required** values:
+```env
+DISCORD_BOT_TOKEN=your_actual_bot_token_here
+JWT_SECRET_KEY=change-this-to-a-random-secret-string-123
+```
+
+#### **4. Optional: Web Login Setup**
+For the web interface login (optional):
+1. In Discord Developer Portal → **"OAuth2"** → **"General"**
+2. Add redirect URI: `http://localhost:8080/auth/callback`
+3. Copy **Client ID** and **Client Secret** to your `.env`:
+```env
+DISCORD_CLIENT_ID=your_client_id
+DISCORD_CLIENT_SECRET=your_client_secret
+```
 
 ### **Bot Permissions Required**
 - ✅ Send Messages
@@ -96,19 +187,71 @@ docker-compose up -d
 - ✅ Attach Files
 - ✅ Read Message History
 
-### **Environment Variables**
+### **Complete Environment Variables Reference**
 ```env
-# Required
-DISCORD_BOT_TOKEN=your_bot_token_here
-JWT_SECRET_KEY=your-super-secret-key
+# ===== REQUIRED SETTINGS =====
+DISCORD_BOT_TOKEN=your_actual_bot_token_here
+JWT_SECRET_KEY=your-super-secret-jwt-key-here-change-this
 
-# Optional (for web login)
+# ===== DATABASE (Required) =====
+DATABASE_URL=sqlite+aiosqlite:///./card_collector.db
+# For PostgreSQL: postgresql+asyncpg://username:password@localhost/card_collector
+
+# ===== WEB SERVER =====
+WEB_HOST=0.0.0.0
+WEB_PORT=8080
+
+# ===== OPTIONAL: WEB LOGIN =====
 DISCORD_CLIENT_ID=your_client_id
 DISCORD_CLIENT_SECRET=your_client_secret
+DISCORD_REDIRECT_URI=http://localhost:8080/auth/callback
 
-# Database (SQLite default)
-DATABASE_URL=sqlite+aiosqlite:///./card_collector.db
+# ===== OPTIONAL: ADVANCED =====
+CDN_UPLOAD_URL=
+CDN_BASE_URL=
+CDN_API_KEY=
+STORAGE_PATH=storage
+IMAGE_QUALITY=90
+SCHEDULER_ENABLED=true
+DEBUG=false
+LOG_LEVEL=INFO
+API_KEY=your-api-key-for-external-access
+WATERMARK_TEXT=Card Collector
 ```
+
+## 🎯 **First Run Guide**
+
+### **After Installation & Configuration**
+
+1. **Start the Application**:
+   ```bash
+   python run.py    # Quick start (development)
+   python start.py  # Full features (production)
+   ```
+
+2. **Verify Everything Works**:
+   - ✅ **Discord Bot**: Check Discord for slash commands (`/card`)
+   - ✅ **Web Interface**: Visit http://localhost:8080
+   - ✅ **API Docs**: Visit http://localhost:8080/docs
+
+3. **Invite Bot to Your Discord Server**:
+   - Go to Discord Developer Portal → Your App → **OAuth2** → **URL Generator**
+   - Select **Scopes**: `bot`, `applications.commands`
+   - Select **Bot Permissions**: `Send Messages`, `Use Slash Commands`, `Embed Links`, `Attach Files`, `Read Message History`
+   - Copy the generated URL and visit it to invite your bot
+
+4. **Test Basic Functionality**:
+   ```
+   /admin setup     # Configure server permissions (admin only)
+   /card create     # Create your first card (moderator+)
+   /card my         # View your collection
+   ```
+
+### **Need Help?**
+- Check the **Installation Troubleshooting** section above
+- Visit the API documentation at http://localhost:8080/docs
+- Review logs in the `logs/` folder
+- Check [GitHub Issues](https://github.com/LukeOsland1/card-collector/issues)
 
 ## 🎮 **Discord Commands**
 
