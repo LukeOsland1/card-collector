@@ -58,9 +58,19 @@ class DatabaseManager:
     async def initialize(self) -> None:
         """Initialize the database connection."""
         if self.is_mongodb:
-            mongodb_url = self.config.mongodb_url
-            await init_mongodb(mongodb_url)
-            logger.info("Initialized MongoDB connection")
+            try:
+                mongodb_url = self.config.mongodb_url
+                await init_mongodb(mongodb_url)
+                logger.info("Initialized MongoDB connection")
+            except Exception as e:
+                logger.error(f"Failed to initialize MongoDB: {e}")
+                logger.warning("Falling back to SQLite database")
+                # Switch to SQLite as fallback
+                import os
+                os.environ["DATABASE_TYPE"] = "sqlite"
+                self.is_mongodb = False
+                self.config = get_database_config()
+                logger.info("Switched to SQLite database as fallback")
         else:
             # SQL database initialization is handled in base.py
             logger.info("Using SQL database connection")
