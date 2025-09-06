@@ -56,7 +56,8 @@ class CardUpdate(BaseModel):
     max_supply: Optional[int] = Field(None, ge=1)
     status: Optional[CardStatus] = None
 
-    @validator("tags")
+    @field_validator("tags")
+    @classmethod
     def validate_tags(cls, v):
         if v is not None:
             v = v[:10]
