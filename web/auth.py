@@ -8,10 +8,7 @@ import httpx
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from db.base import get_db
-from db.crud import UserCRUD, GuildConfigCRUD
+from db.database import get_db_session, UserCRUD, GuildConfigCRUD
 from bot.permissions import get_user_permission_level, PermissionLevel
 
 logger = logging.getLogger(__name__)
@@ -82,7 +79,7 @@ def verify_token(token: str) -> Dict[str, any]:
 async def get_current_user(
     request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db_session),
 ) -> dict:
     """Get current authenticated user."""
     if not credentials:
@@ -223,7 +220,7 @@ async def get_discord_guilds(access_token: str) -> list:
         return response.json()
 
 
-async def login_with_discord(code: str, db: AsyncSession) -> dict:
+async def login_with_discord(code: str, db) -> dict:
     """Complete Discord OAuth login flow."""
     # Exchange code for access token
     token_response = await exchange_discord_code(code)
@@ -277,7 +274,7 @@ def get_discord_oauth_url(state: Optional[str] = None) -> str:
 async def refresh_user_permissions(
     user_id: int,
     guild_id: int,
-    db: AsyncSession
+    db
 ) -> dict:
     """Refresh and cache user permissions for a guild."""
     try:
@@ -332,7 +329,7 @@ class OptionalAuth:
         self,
         request: Request,
         credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
-        db: AsyncSession = Depends(get_db),
+        db = Depends(get_db_session),
     ) -> Optional[dict]:
         """Get current user if authenticated, otherwise return None."""
         if not credentials:
@@ -347,7 +344,7 @@ class OptionalAuth:
 optional_auth = OptionalAuth()
 
 
-async def validate_api_key(api_key: str, db: AsyncSession) -> Optional[dict]:
+async def validate_api_key(api_key: str, db) -> Optional[dict]:
     """Validate API key for external integrations."""
     # This would validate API keys stored in database
     # For now, just check against environment variable
@@ -367,7 +364,7 @@ async def validate_api_key(api_key: str, db: AsyncSession) -> Optional[dict]:
 async def get_current_user_or_api_key(
     request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db_session),
 ) -> dict:
     """Get current user via JWT token or API key."""
     if not credentials:

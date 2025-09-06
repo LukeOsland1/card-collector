@@ -93,10 +93,11 @@ async def login(request: Request, state: Optional[str] = None):
 async def auth_callback(
     code: str,
     state: Optional[str] = None,
+    db = Depends(get_db_session),
 ):
     """Handle Discord OAuth callback."""
     try:
-        login_result = await login_with_discord(code)
+        login_result = await login_with_discord(code, db)
         
         # In a real app, you'd set an HTTP-only cookie here
         # For now, return the token (client should handle this securely)
