@@ -130,7 +130,7 @@ async def get_db_session():
     """Get database session (for SQL) or return None (for MongoDB with Beanie)."""
     if is_mongodb():
         # MongoDB uses global connection through Beanie
-        return None
+        yield None
     else:
         # SQL database session
         from .base import get_db
