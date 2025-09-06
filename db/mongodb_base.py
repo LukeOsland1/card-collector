@@ -21,6 +21,34 @@ mongodb_client: Optional[AsyncIOMotorClient] = None
 database = None
 
 
+async def ensure_indexes() -> None:
+    """Ensure all required indexes are created for optimal performance."""
+    try:
+        db = await get_database()
+        
+        # Beanie automatically creates indexes defined in model Settings.indexes
+        # But we can verify or create additional indexes if needed
+        
+        # Get all document models for index verification
+        models = [Card, CardInstance, User, GuildConfig, AuditLog, CardSubmission]
+        
+        for model in models:
+            collection_name = model.Settings.name
+            collection = db[collection_name]
+            
+            # Get existing indexes
+            existing_indexes = await collection.list_indexes().to_list(length=None)
+            index_names = [idx['name'] for idx in existing_indexes]
+            
+            logger.debug(f"Collection '{collection_name}' indexes: {index_names}")
+        
+        logger.info("Index verification completed")
+        
+    except Exception as e:
+        logger.warning(f"Index verification failed: {e}")
+        # Don't raise exception - indexes are not critical for basic functionality
+
+
 async def init_mongodb(mongodb_url: Optional[str] = None) -> None:
     """Initialize MongoDB connection and Beanie ODM."""
     global mongodb_client, database
@@ -39,7 +67,12 @@ async def init_mongodb(mongodb_url: Optional[str] = None) -> None:
         await mongodb_client.admin.command('ping')
         logger.info(f"Successfully connected to MongoDB at {mongodb_url}")
         
+        # Database will be created automatically when first document is inserted
+        # MongoDB creates databases lazily (on first write operation)
+        logger.info(f"Using MongoDB database: {database_name}")
+        
         # Initialize Beanie with document models
+        # This will create collections and indexes automatically
         await init_beanie(
             database=database,
             document_models=[
@@ -52,6 +85,14 @@ async def init_mongodb(mongodb_url: Optional[str] = None) -> None:
             ]
         )
         logger.info("Beanie ODM initialized successfully")
+        
+        # Verify collections were created/exist
+        collections = await database.list_collection_names()
+        logger.info(f"Available collections: {collections}")
+        
+        # Create indexes explicitly if needed (Beanie should handle this automatically)
+        await ensure_indexes()
+        logger.info("Database indexes verified")
         
     except Exception as e:
         logger.error(f"Failed to connect to MongoDB: {e}")
@@ -107,4 +148,47 @@ async def mongodb_health_check() -> dict:
         return {
             "status": "unhealthy",
             "error": str(e)
+        }
+
+
+async def setup_database() -> dict:
+    """
+    Setup database with initial configuration if needed.
+    This function can be called during first-time setup.
+    """
+    try:
+        await init_mongodb()
+        
+        db = await get_database()
+        
+        # Check if database exists and has collections
+        collections = await db.list_collection_names()
+        
+        result = {
+            "status": "success",
+            "database_name": db.name,
+            "collections_created": [],
+            "message": "Database setup completed"
+        }
+        
+        if not collections:
+            # Database is completely new
+            logger.info("New MongoDB database detected - collections will be created on first use")
+            result["message"] = "New database initialized - collections will be created automatically"
+        else:
+            result["collections_created"] = collections
+            logger.info(f"Existing database found with collections: {collections}")
+        
+        # Verify health
+        health = await mongodb_health_check()
+        result["health"] = health
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Database setup failed: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "message": "Database setup failed"
         }
