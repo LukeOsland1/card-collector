@@ -191,7 +191,17 @@ web_host=${web_host:-0.0.0.0}
 # Create the .env file
 print_step "Creating .env file..."
 
-cat > .env << EOF
+# Debug: Show what we're about to write
+echo "Debug: Writing .env with the following values:"
+echo "  DISCORD_BOT_TOKEN: ${bot_token:0:10}..." # Show first 10 chars
+echo "  JWT_SECRET_KEY: ${jwt_secret:0:20}..."
+echo "  DATABASE_URL: $database_url"
+echo "  WEB_HOST: $web_host"
+echo "  WEB_PORT: $web_port"
+
+# Create the .env file with proper error handling
+{
+cat > .env << ENVEOF
 # Card Collector - Environment Configuration
 # Generated automatically by setup_macos.sh on $(date)
 
@@ -206,21 +216,33 @@ DATABASE_URL=$database_url
 WEB_HOST=$web_host
 WEB_PORT=$web_port
 
-EOF
+ENVEOF
+} || {
+    print_error "Failed to create .env file"
+    echo "Current directory: $(pwd)"
+    echo "Directory permissions: $(ls -ld .)"
+    exit 1
+}
 
 # Add OAuth settings if configured
 if [ -n "$client_id" ] && [ -n "$client_secret" ]; then
-    cat >> .env << EOF
+    {
+    cat >> .env << OAUTHEOF
 # ===== OAUTH2 WEB LOGIN =====
 DISCORD_CLIENT_ID=$client_id
 DISCORD_CLIENT_SECRET=$client_secret
 DISCORD_REDIRECT_URI=http://localhost:$web_port/auth/callback
 
-EOF
+OAUTHEOF
+    } || {
+        print_error "Failed to add OAuth settings to .env file"
+        exit 1
+    }
 fi
 
 # Add optional settings
-cat >> .env << EOF
+{
+cat >> .env << ENVEOF2
 # ===== OPTIONAL SETTINGS =====
 STORAGE_PATH=storage
 IMAGE_QUALITY=90
@@ -236,9 +258,24 @@ CDN_API_KEY=
 # ===== ADVANCED =====
 API_KEY=
 WATERMARK_TEXT=Card Collector
-EOF
+ENVEOF2
+} || {
+    print_error "Failed to append to .env file"
+    exit 1
+}
 
-print_status ".env file created successfully!"
+# Verify .env file was created properly
+if [ -f ".env" ] && [ -s ".env" ]; then
+    print_status ".env file created successfully!"
+    echo "  File size: $(wc -c < .env) bytes"
+    echo "  First few lines:"
+    head -n 3 .env | sed 's/^/    /'
+else
+    print_error ".env file was not created properly"
+    echo "File exists: $([ -f .env ] && echo 'YES' || echo 'NO')"
+    echo "File size: $([ -f .env ] && wc -c < .env || echo 'N/A') bytes"
+    exit 1
+fi
 
 # Set proper permissions
 chmod 600 .env
@@ -272,4 +309,15 @@ echo "     - Web Interface: http://localhost:$web_port"
 echo "     - API Documentation: http://localhost:$web_port/docs"
 echo
 print_status "Happy card collecting! 🎴"
-EOF
+
+echo
+echo "============================================"
+echo "           TROUBLESHOOTING"
+echo "============================================"
+echo "If you encounter issues:"
+echo "  • Check that .env file was created: ls -la .env"
+echo "  • Verify .env contents: head .env"
+echo "  • Check file permissions: ls -la .env (should be -rw-------)"
+echo "  • For Python issues: python3 --version"
+echo "  • For dependency issues: python3 install_deps.py"
+echo "  • GitHub Issues: https://github.com/LukeOsland1/card-collector/issues"
