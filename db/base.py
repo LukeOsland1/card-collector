@@ -19,14 +19,21 @@ db_config = get_database_config()
 # Create engines
 if db_config.database_url.startswith("sqlite"):
     # SQLite configuration
+    # For sync engine, strip async driver from URL
+    sync_url = db_config.database_url.replace("sqlite+aiosqlite:", "sqlite:")
     engine = create_engine(
-        db_config.database_url,
+        sync_url,
         poolclass=StaticPool,
         connect_args={"check_same_thread": False},
         echo=db_config.echo_sql,
     )
-    # Convert to async SQLite URL
-    async_url = db_config.database_url.replace("sqlite:///", "sqlite+aiosqlite:///")
+    
+    # For async engine, ensure proper async URL format
+    if "sqlite+aiosqlite:" in db_config.database_url:
+        async_url = db_config.database_url  # Already has async driver
+    else:
+        async_url = db_config.database_url.replace("sqlite:", "sqlite+aiosqlite:")
+    
     async_engine = create_async_engine(
         async_url,
         poolclass=StaticPool,
