@@ -272,9 +272,33 @@ class MongoUserCRUD:
         return await User.find_one(User.discord_id == discord_id)
     
     @staticmethod
+    async def get_or_create(db, discord_id: int) -> User:
+        """Get or create user by Discord ID (compatible with SQL CRUD interface)."""
+        user = await User.find_one(User.discord_id == discord_id)
+        
+        if not user:
+            user = User(
+                discord_id=discord_id,
+                last_activity=datetime.utcnow(),
+            )
+            await user.insert()
+            logger.info(f"Created new user: {discord_id}")
+        
+        return user
+    
+    @staticmethod
     async def get_by_id(user_id: str) -> Optional[User]:
         """Get user by ID."""
         return await User.find_one(User.id == user_id)
+    
+    @staticmethod
+    async def update_last_activity(db, discord_id: int) -> Optional[User]:
+        """Update user's last activity timestamp."""
+        user = await User.find_one(User.discord_id == discord_id)
+        if user:
+            user.last_activity = datetime.utcnow()
+            await user.save()
+        return user
     
     @staticmethod
     async def update_activity(discord_id: int) -> Optional[User]:
